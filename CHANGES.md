@@ -195,6 +195,25 @@ record.
 - Added an `adminer` service to `docker-compose.yaml` (port `5555:8080`) for local database management; waits on the `postgres` healthcheck and joins the private application network.
 - Simply it added adminer container to docker-compose for DB inspection
 
+## 2026-09-06 - Complete demo user profiles
+
+### Seed and test data
+
+- Expanded the existing test-user seed with complete Amharic profiles, Ethiopian location data, unique phone numbers, and active states for new and existing demo users.
+- Ensure contributor/reviewer wallets and linked scores exist without resetting earned balances or scores on reruns. Projects, tasks, assignments, and submissions remain manual UI operations.
+
+## 2026-09-07 - End-to-end workflow corrections
+
+### Validation and submissions
+
+- Added strict nested validation for text submission attempts and compatible validation metadata for annotation/rejection reference-data DTOs.
+- Validate prior submissions per microtask with their statuses so rejected work can be retried without accepting duplicate pending/approved work.
+- Advance contributor progress by newly submitted microtasks rather than configured batch size; retries do not increment progress or renew deadlines. Added text/audio regression coverage.
+
+### Finance
+
+- Corrected two-decimal withdrawal validation to accept legitimate floating-point amounts such as 0.29.
+- Added mocked-provider coverage for reservation, settlement, ambiguous transport errors, insufficient balance, and idempotent failure reversal. Real payouts remain disabled during E2E verification.
 
 ## How to record future changes
 

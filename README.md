@@ -415,13 +415,44 @@ All routes are served under `/api`.
 
 For exact request and response shapes, use Swagger at `/doc`.
 
-## Test Account
+## Test Accounts
 
-```text
-Super Admin
-username: guest@gmail.com
-password: guest@1234
+Run these commands from the backend directory against a **local/development database only**.
+In `.env`, enable the demo users:
+
+```env
+NODE_ENV=development
+ENABLE_DEMO_USERS_SEED=true
 ```
+
+**Native (without Docker):** with dependencies installed and `DATABASE_URL` pointing to a database reachable from your host:
+
+```bash
+npm run migration:run
+npm run seed
+```
+
+**Docker:** rebuild to include the latest seed, then run the compiled scripts:
+
+```bash
+docker compose up -d --build
+docker compose exec -T app npm run migration:run:prod
+docker compose exec -T -e NODE_ENV=development -e ENABLE_DEMO_USERS_SEED=true app npm run seed:prod
+```
+
+All demo accounts use password `12345678`:
+
+| Role | Accounts |
+| --- | --- |
+| SuperAdmin | `super@gmail.com`, `super1@gmail.com` |
+| ProjectManager | `proj@gmail.com`, `proj1@gmail.com` |
+| Facilitator | `faci@gmail.com`, `faci1@gmail.com` |
+| Reviewer | `rev@gmail.com`, `rev2@gmail.com` |
+| Contributor (mobile) | `cont@gmail.com`, `cont1@gmail.com` |
+
+For mobile login, enter `123456789` or `234567890` in the phone field; the app adds `+251`.
+The seed creates or updates demo profiles, but leaves project/task creation and assignment to the UI.
+Never enable demo seeding against a production database.
 
 ## Operational Notes
 
