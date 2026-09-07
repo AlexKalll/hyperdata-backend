@@ -113,7 +113,7 @@ export class WalletService {
     if (
       !Number.isFinite(amount) ||
       amount <= 0 ||
-      Math.round(amount * 100) !== amount * 100
+      Math.round(amount * 100) / 100 !== amount
     ) {
       throw new BadRequestException(
         'Amount must be a positive value with at most two decimal places',
