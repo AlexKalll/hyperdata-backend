@@ -24,7 +24,7 @@ jest.mock('./ReviewerTasks.service', () => ({ ReviewerTaskService: class {} }));
 import { TaskSubmissionService } from './TaskSubmission.service';
 import { DataSetService } from 'src/data_set/service/DataSet.service';
 import { DataSetStatus } from 'src/utils/constants/DataSetStatus.constant';
-import { taskTypes } from 'src/utils/constants/Task.constant';
+import { taskTypes, UserTaskStatus } from 'src/utils/constants/Task.constant';
 import { ContributorMicroTasksConstantStatus } from 'src/utils/constants/ContributorMicroTasks.constant';
 
 describe.each(['text', 'audio'] as const)('%s submissions', (kind) => {
@@ -44,6 +44,11 @@ describe.each(['text', 'audio'] as const)('%s submissions', (kind) => {
     createMultipleAudioDataSet: jest.Mock;
   };
   let contributorTasks: { findOne: jest.Mock; update: jest.Mock };
+  let taskService: {
+    findOne: jest.Mock;
+    updateOrCreateUserToPending: jest.Mock;
+  };
+  let microTasks: { id: string; is_test: boolean }[];
   let runner: {
     connect: jest.Mock;
     startTransaction: jest.Mock;
@@ -65,6 +70,10 @@ describe.each(['text', 'audio'] as const)('%s submissions', (kind) => {
       batch: 3,
       total_micro_tasks: 3,
     };
+    microTasks = assignment.micro_task_ids.map((id) => ({
+      id,
+      is_test: false,
+    }));
     task = {
       taskType: {
         task_type:
@@ -98,13 +107,14 @@ describe.each(['text', 'audio'] as const)('%s submissions', (kind) => {
       findOne: jest.fn().mockImplementation(async () => assignment),
       update: jest.fn(),
     };
+    taskService = {
+      findOne: jest.fn().mockResolvedValue(task),
+      updateOrCreateUserToPending: jest.fn(),
+    };
     service = new TaskSubmissionService(
       dataSets as any,
       contributorTasks as any,
-      {
-        findOne: jest.fn().mockResolvedValue(task),
-        updateOrCreateUserToPending: jest.fn(),
-      } as any,
+      taskService as any,
       { createQueryRunner: () => runner } as any,
       {
         findOne: jest.fn().mockResolvedValue({
@@ -116,7 +126,9 @@ describe.each(['text', 'audio'] as const)('%s submissions', (kind) => {
         findAll: jest
           .fn()
           .mockImplementation(async ({ where }) =>
-            where.id.value.map((id: string) => ({ id, is_test: false })),
+            where.id.value.map((id: string) =>
+              microTasks.find((microTask) => microTask.id === id),
+            ),
           ),
       } as any,
       { findOneOrCreate: jest.fn() } as any,
@@ -152,6 +164,29 @@ describe.each(['text', 'audio'] as const)('%s submissions', (kind) => {
         current_batch: 1,
         status: ContributorMicroTasksConstantStatus.IN_PROGRESS,
       }),
+      runner,
+    );
+    expect(runner.commitTransaction).toHaveBeenCalled();
+  });
+
+  it('creates a pending contributor task for a text test submission', async () => {
+    if (kind !== 'text') return;
+
+    microTasks[0].is_test = true;
+    await service.submitMultipleTextDatasets(
+      'user',
+      [{ micro_task_id: 'mt-1', text_data_set: 'test response' }],
+      'task',
+      true,
+    );
+
+    expect(taskService.updateOrCreateUserToPending).toHaveBeenCalledWith(
+      {
+        task_id: 'task',
+        user_id: 'user',
+        role: 'Contributor',
+        status: UserTaskStatus.PENDING,
+      },
       runner,
     );
     expect(runner.commitTransaction).toHaveBeenCalled();

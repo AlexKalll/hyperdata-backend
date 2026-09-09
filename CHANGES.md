@@ -215,6 +215,15 @@ record.
 - Corrected two-decimal withdrawal validation to accept legitimate floating-point amounts such as 0.29.
 - Added mocked-provider coverage for reservation, settlement, ambiguous transport errors, insufficient balance, and idempotent failure reversal. Real payouts remain disabled during E2E verification.
 
+## 2026-09-09 - Test submission benchmark fix
+
+### Validation and submissions
+
+- Added the required `Contributor` role and `Pending` status when a contributor
+  submits a test text dataset, preventing the `UserTask` insert from failing on
+  its non-null role column.
+- Added focused regression coverage for the test text submission path.
+
 ## How to record future changes
 
 When making non-trivial modifications, add a short entry under a new dated

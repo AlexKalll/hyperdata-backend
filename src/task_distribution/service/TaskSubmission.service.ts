@@ -133,7 +133,12 @@ export class TaskSubmissionService {
             queryRunner,
           );
         await this.taskService.updateOrCreateUserToPending(
-          { task_id: task_id, user_id: user_id },
+          {
+            task_id: task_id,
+            user_id: user_id,
+            role: 'Contributor',
+            status: UserTaskStatus.PENDING,
+          },
           queryRunner,
         );
         // await this.userScoreService.updateScore(
