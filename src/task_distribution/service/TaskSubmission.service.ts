@@ -72,7 +72,7 @@ export class TaskSubmissionService {
     );
     const contributorSubmittedDataSets = await this.dataSetService.findAll({
       where: { micro_task_id: In(micro_task_ids), contributor_id: user_id },
-      select: { id: true },
+      select: { id: true, micro_task_id: true, status: true },
     });
     const task_type = task.taskType.task_type || '';
     if (
@@ -93,7 +93,9 @@ export class TaskSubmissionService {
           );
         }
         return this.dataSetService.validateSubmission(
-          contributorSubmittedDataSets,
+          contributorSubmittedDataSets.filter(
+            (dataSet) => dataSet.micro_task_id === item.micro_task_id,
+          ),
           user_id,
           task.taskRequirement.max_retry_per_task,
         );
@@ -131,7 +133,12 @@ export class TaskSubmissionService {
             queryRunner,
           );
         await this.taskService.updateOrCreateUserToPending(
-          { task_id: task_id, user_id: user_id },
+          {
+            task_id: task_id,
+            user_id: user_id,
+            role: 'Contributor',
+            status: UserTaskStatus.PENDING,
+          },
           queryRunner,
         );
         // await this.userScoreService.updateScore(
@@ -217,8 +224,13 @@ export class TaskSubmissionService {
           //     'You have not submitted all the expected micro tasks for this batch',
           //   );
           // }
-          const nextTaskIds = datasets.filter((d) =>
-            contributorMicroTasks.micro_task_ids.includes(d.micro_task_id),
+          // Retries create a new dataset, but do not complete another microtask.
+          const nextTaskIds = datasets.filter(
+            (d) =>
+              contributorMicroTasks.micro_task_ids.includes(d.micro_task_id) &&
+              !contributorSubmittedDataSets.some(
+                (previous) => previous.micro_task_id === d.micro_task_id,
+              ),
           );
           const current_batch = contributorMicroTasks.current_batch;
           // if (current_batch >= contributorMicroTasks.total_micro_tasks) {
@@ -228,10 +240,10 @@ export class TaskSubmissionService {
           // }
           if (current_batch < contributorMicroTasks.total_micro_tasks) {
             const nextBatch =
-              contributorMicroTasks.current_batch + contributorMicroTasks.batch;
+              contributorMicroTasks.current_batch + nextTaskIds.length;
             const totalDatasets = contributorMicroTasks.total_micro_tasks;
             const batch = Math.min(totalDatasets, nextBatch);
-            if (nextTaskIds) {
+            if (nextTaskIds.length > 0) {
               const status =
                 batch >= contributorMicroTasks.total_micro_tasks
                   ? ContributorMicroTasksConstantStatus.COMPLETED
@@ -322,6 +334,21 @@ export class TaskSubmissionService {
       task_id,
       micro_task_ids,
       is_test,
+    );
+    const contributorSubmittedDataSets = await this.dataSetService.findAll({
+      where: { micro_task_id: In(micro_task_ids), contributor_id: user_id },
+      select: { id: true, micro_task_id: true, status: true },
+    });
+    await Promise.all(
+      datasets.map((item) =>
+        this.dataSetService.validateSubmission(
+          contributorSubmittedDataSets.filter(
+            (dataSet) => dataSet.micro_task_id === item.micro_task_id,
+          ),
+          user_id,
+          task.taskRequirement.max_retry_per_task,
+        ),
+      ),
     );
     await this.cacheService.clearContributorTaskCache(user_id, task_id);
     if (is_test) {
@@ -431,8 +458,13 @@ export class TaskSubmissionService {
             where: { contributor_id: user_id, task_id: task_id },
           });
         if (contributorMicroTasks) {
-          const nextTaskIds = datasets.filter((d) =>
-            contributorMicroTasks.micro_task_ids.includes(d.micro_task_id),
+          // Retries create a new dataset, but do not complete another microtask.
+          const nextTaskIds = datasets.filter(
+            (d) =>
+              contributorMicroTasks.micro_task_ids.includes(d.micro_task_id) &&
+              !contributorSubmittedDataSets.some(
+                (previous) => previous.micro_task_id === d.micro_task_id,
+              ),
           );
           const current_batch = contributorMicroTasks.current_batch;
           // if (current_batch >= contributorMicroTasks.total_micro_tasks) {
@@ -443,10 +475,10 @@ export class TaskSubmissionService {
           // }
           if (current_batch < contributorMicroTasks.total_micro_tasks) {
             const nextBatch =
-              contributorMicroTasks.current_batch + contributorMicroTasks.batch;
+              contributorMicroTasks.current_batch + nextTaskIds.length;
             const totalDatasets = contributorMicroTasks.total_micro_tasks;
             const batch = Math.min(totalDatasets, nextBatch);
-            if (nextTaskIds) {
+            if (nextTaskIds.length > 0) {
               const status =
                 batch >= contributorMicroTasks.total_micro_tasks
                   ? ContributorMicroTasksConstantStatus.COMPLETED
