@@ -1,0 +1,14 @@
+# Add these routes to the existing /opt/hrm/docker/Caddyfile.
+# The shared hrm-caddy container must also be attached to hyperdata_internal.
+
+mahder.duckdns.org {
+    reverse_proxy frontend:3000
+}
+
+mahder-api.duckdns.org {
+    reverse_proxy backend:3000
+}
+
+mahder-storage.duckdns.org {
+    reverse_proxy minio:9000
+}

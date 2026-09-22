@@ -38,6 +38,13 @@ record.
 
 ## 2026-08-10
 
+## 2026-09-22: Netcup production deployment baseline
+
+- Promoted the tested backend changes to the default `main` branch.
+- Added separate private and public MinIO S3 clients so generated signed URLs can use a public HTTPS storage hostname while uploads remain internal.
+- Added the guarded `bootstrap-admin` command for creating or updating the first SuperAdmin without enabling demo-user seeding.
+- Added the production deployment baseline and isolated Compose/Caddy integration files under `deploy/`.
+
 ### Authorization hardening
 - Restricted blog mutations and contact-submission staff access to administrators,
   while retaining public contact form submission and blog reads.

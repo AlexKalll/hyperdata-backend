@@ -9,16 +9,31 @@ import { Request } from 'express';
 ConfigModule.forRoot({ envFilePath: '.env', isGlobal: true });
 const configService = new ConfigService();
 
-export const s3 = new S3Client({
-  endpoint: configService.get<string>('MINIO_ENDPOINT'),
-  credentials: {
-    accessKeyId: configService.get<string>('MINIO_ACCESS_KEY') as string,
-    secretAccessKey: configService.get<string>('MINIO_SECRET_KEY') as string,
-  },
-  region: 'us-east-1',
-  forcePathStyle:
-    configService.get<string>('MINIO_S3_FORCE_PATH_STYLE') !== 'false',
-});
+const minioEndpoint = configService.get<string>('MINIO_ENDPOINT');
+const minioPublicEndpoint =
+  configService.get<string>('MINIO_PUBLIC_ENDPOINT') || minioEndpoint;
+const minioCredentials = {
+  accessKeyId: configService.get<string>('MINIO_ACCESS_KEY') as string,
+  secretAccessKey: configService.get<string>('MINIO_SECRET_KEY') as string,
+};
+const forcePathStyle =
+  configService.get<string>('MINIO_S3_FORCE_PATH_STYLE') !== 'false';
+
+const createS3Client = (endpoint?: string) =>
+  new S3Client({
+    endpoint,
+    credentials: minioCredentials,
+    region: 'us-east-1',
+    forcePathStyle,
+  });
+
+// Keep uploads and server-side object operations on the private Docker route.
+export const s3 = createS3Client(minioEndpoint);
+
+// Signed URLs must contain a hostname reachable by browsers and mobile devices.
+// When MINIO_PUBLIC_ENDPOINT is not configured, this intentionally falls back
+// to the private endpoint for local development compatibility.
+export const s3Presigner = createS3Client(minioPublicEndpoint);
 
 export const MINIO_BUCKET = configService.get<string>('MINIO_BUCKET') as string;
 

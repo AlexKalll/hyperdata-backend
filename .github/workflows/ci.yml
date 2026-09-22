@@ -73,3 +73,30 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  deploy-production:
+    name: Deploy production
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production
+    concurrency:
+      group: hyperdata-production
+      cancel-in-progress: false
+    steps:
+      - name: Configure Netcup SSH
+        shell: bash
+        run: |
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "${{ secrets.NETCUP_KNOWN_HOSTS }}" > "$HOME/.ssh/known_hosts"
+          printf '%s\n' "${{ secrets.NETCUP_SSH_PRIVATE_KEY }}" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+
+      - name: Deploy backend and dependent services
+        env:
+          NETCUP_HOST: ${{ secrets.NETCUP_HOST }}
+          NETCUP_PORT: ${{ secrets.NETCUP_PORT || '22' }}
+          NETCUP_USER: ${{ secrets.NETCUP_USER }}
+        run: |
+          ssh -p "$NETCUP_PORT" "$NETCUP_USER@$NETCUP_HOST" \
+            '/home/deploy/hyperdata/src/hyperdata-backend/deploy/deploy.sh backend'
