@@ -45,6 +45,14 @@ record.
 - Added the guarded `bootstrap-admin` command for creating or updating the first SuperAdmin without enabling demo-user seeding.
 - Added the production deployment baseline and isolated Compose/Caddy integration files under `deploy/`.
 
+## 2026-09-23: Host Caddy integration
+
+- Published the frontend, backend API, and MinIO API only on loopback ports so the
+  existing host-level Caddy service can proxy them without exposing internal
+  services directly.
+- Updated the Caddy route example to target those loopback ports while preserving
+  the existing HRM and iCog-Labs routes.
+
 ### Authorization hardening
 - Restricted blog mutations and contact-submission staff access to administrators,
   while retaining public contact form submission and blog reads.

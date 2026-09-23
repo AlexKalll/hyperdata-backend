@@ -73,6 +73,7 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
     ports:
+      - "127.0.0.1:9000:9000"
       - "127.0.0.1:9001:9001"
     expose:
       - "9000"
@@ -130,6 +131,8 @@ services:
       MINIO_BUCKET: ${MINIO_BUCKET:?MINIO_BUCKET is required}
       MINIO_S3_FORCE_PATH_STYLE: "true"
       MINIO_SIGNATURE_VERSION: v4
+    ports:
+      - "127.0.0.1:3000:3000"
     expose:
       - "3000"
     depends_on:
@@ -187,6 +190,8 @@ services:
     restart: unless-stopped
     env_file:
       - ../../../secrets/frontend.env
+    ports:
+      - "127.0.0.1:3001:3000"
     expose:
       - "3000"
     depends_on:
