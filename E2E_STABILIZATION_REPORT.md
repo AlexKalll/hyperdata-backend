@@ -87,6 +87,9 @@ skip a submission, and the last reviewer receives an assignment notification.
 - Public API and private-storage health checks returned HTTP 200.
 - Six showcase accounts and the retained project/task/microtask/dataset records
   remained present after deployment.
+- Live reviewer redistribution returned HTTP 201 and moved all four pending
+  submissions from the invalid Facilitator assignment to `rev@gmail.com`.
+- The Reviewer API now returns one task with `All = 4` and `Pending = 4`.
 
 ## 5. Manual E2E path
 
