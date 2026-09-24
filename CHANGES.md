@@ -285,6 +285,14 @@ record.
 - Added an illustrated E2E stabilization report, copy-ready PR details, and the
   credential-free Netcup showcase operations runbook.
 
+## 2026-09-24 - Facilitator submissions and retry recovery
+
+- Accepted class-validator metadata for facilitator contributor-submission
+  pagination queries so the global strict validation pipe no longer rejects
+  valid `page`, `limit`, and `contributor_id` parameters.
+- Preserved the contributor's recorded attempt count when a reviewer rejects a
+  cached submission, keeping a task with available retries recordable again.
+
 ## How to record future changes
 
 When making non-trivial modifications, add a short entry under a new dated
