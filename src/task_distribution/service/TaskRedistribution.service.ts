@@ -15,6 +15,7 @@ import {
   distributeTaskAmongNewContributorsGenderBased,
 } from 'src/utils/TaskDistribution.util';
 import { UserScoreService } from 'src/auth/service/UserScore.service';
+import { CacheService } from 'src/cache/CacheService.service';
 @Injectable()
 /**
  * The TaskDistributionService class is responsible for managing task distribution and redistribution
@@ -31,6 +32,7 @@ export class TaskRedistributionService {
     private readonly userService: UserService,
     private readonly userScoreService: UserScoreService,
     private readonly dataSource: DataSource,
+    private readonly cacheService: CacheService,
   ) {}
   /**
    * This method is responsible for redistributing the tasks among contributors who have not yet
@@ -104,10 +106,17 @@ export class TaskRedistributionService {
             newContributors = newContributors.slice(0, diff);
           }
         }
+        const affectedContributorIds = new Set([
+          ...contributorMicroTasks.map(
+            (assignment) => assignment.contributor_id,
+          ),
+          ...newContributors.map((contributor) => contributor.id),
+        ]);
         // Create a transaction
         const queryRunner: QueryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
+        let committed = false;
 
         try {
           const batchSize = taskRequirement.batch
@@ -143,6 +152,7 @@ export class TaskRedistributionService {
           }
 
           await queryRunner.commitTransaction();
+          committed = true;
         } catch (error) {
           console.error(
             `[Redistribution] Task ID ${taskId}: Error during redistribution`,
@@ -156,6 +166,29 @@ export class TaskRedistributionService {
             console.error(
               `[Redistribution] Task ID ${taskId}: Error releasing queryRunner`,
               releaseError,
+            );
+          }
+        }
+
+        // Both contributor task lists and task details are cached. Clear them
+        // only after the transaction succeeds so a contributor sees newly
+        // assigned microtasks immediately without exposing a rolled-back
+        // redistribution. A Redis failure must not turn a committed database
+        // transaction into a reported redistribution failure.
+        if (committed) {
+          try {
+            await Promise.all(
+              [...affectedContributorIds].map((contributorId) =>
+                this.cacheService.clearContributorTaskCache(
+                  contributorId,
+                  taskId,
+                ),
+              ),
+            );
+          } catch (cacheError) {
+            console.error(
+              `[Redistribution] Task ID ${taskId}: Error clearing contributor cache`,
+              cacheError,
             );
           }
         }

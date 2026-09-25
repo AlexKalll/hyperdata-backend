@@ -239,6 +239,60 @@ record.
   its non-null role column.
 - Added focused regression coverage for the test text submission path.
 
+## 2026-09-23 - Showcase seed identity alignment
+
+### Seed and test data
+
+- Aligned the guarded demo-user seed with the six current showcase accounts:
+  `admin@gmail.com`, `pm@gmail.com`, `faci@gmail.com`, `rev@gmail.com`,
+  `cont1@gmail.com`, and `cont2@gmail.com`.
+- Removed obsolete showcase email and phone definitions from the seed while
+  retaining the existing wallet/score preservation behavior for contributors
+  and reviewers.
+- Added a stable-national-ID email migration so rerunning the seed across the
+  old-to-new showcase naming change preserves existing demo user IDs.
+- Removed the hard-coded demo password and require the server/local environment
+  to provide `DEMO_USERS_PASSWORD` when guarded demo seeding is enabled.
+
+## 2026-09-24 - Redistribution cache consistency
+
+### Task distribution
+
+- Clear affected contributors' task-list and task-detail Redis entries only
+  after a redistribution transaction commits, so reassigned microtasks appear
+  immediately without exposing rolled-back data.
+- Added regression coverage proving cache invalidation follows commits and is
+  skipped after transaction rollbacks.
+- Preserve dialect and region descriptions in paginated reference-data
+  responses so frontend edit forms can repopulate all supported DTO fields.
+
+## 2026-09-24 - Reviewer assignment recovery
+
+### Task distribution
+
+- Load active task members with the `Reviewer` membership directly before
+  distributing pending submissions.
+- Reclaim submissions from active reviewer-assignment rows owned by users who
+  are not eligible reviewers for the task, then assign them to valid reviewers.
+- Corrected the multi-reviewer distribution cursor so no pending submissions
+  are skipped, and notify reviewers even when the final assignment consumes the
+  remaining submissions.
+- Added focused regression coverage for reviewer selection, stale-assignment
+  recovery, complete multi-reviewer allocation, and final-batch notifications.
+
+### Documentation
+
+- Added an illustrated E2E stabilization report, copy-ready PR details, and the
+  credential-free Netcup showcase operations runbook.
+
+## 2026-09-24 - Facilitator submissions and retry recovery
+
+- Accepted class-validator metadata for facilitator contributor-submission
+  pagination queries so the global strict validation pipe no longer rejects
+  valid `page`, `limit`, and `contributor_id` parameters.
+- Preserved the contributor's recorded attempt count when a reviewer rejects a
+  cached submission, keeping a task with available retries recordable again.
+
 ## How to record future changes
 
 When making non-trivial modifications, add a short entry under a new dated

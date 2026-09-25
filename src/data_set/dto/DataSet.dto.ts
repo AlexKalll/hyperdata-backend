@@ -3,7 +3,7 @@ import { PaginationDto } from 'src/common/dto/Pagination.dto';
 import { DataSetStatus } from 'src/utils/constants/DataSetStatus.constant';
 import { z } from 'zod';
 // get-dataset.dto.ts
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsOptional,
   IsString,
@@ -118,9 +118,12 @@ export class FindReviewerDataSetDto extends PaginationDto {
   status?: 'Pending' | 'Approved' | 'Rejected' | 'Flagged';
 }
 export const updateDataSetSchema = createDataSetSchema.partial();
-export class FindContributorDatesetDto extends createZodDto(
-  findContributorDatasetsPaginated,
-) {}
+// Use class-validator metadata because this DTO is handled by the global pipe.
+export class FindContributorDatesetDto extends PaginationDto {
+  @ApiProperty({ description: 'Contributor ID' })
+  @IsUUID()
+  contributor_id: string;
+}
 export class CreateDataSetDto extends createZodDto(createDataSetSchema) {}
 export class UpdateDataSetDto extends createZodDto(updateDataSetSchema) {}
 export class CreateMultipleDataSetDto extends createZodDto(
