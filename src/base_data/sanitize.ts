@@ -112,7 +112,6 @@ export class LanguageSanitized {
 export const DialectSanitizedFields = {
   id: true,
   name: true,
-  description: true,
   created_date: true,
 };
 
@@ -122,8 +121,6 @@ export class DialectSanitized {
   @ApiProperty()
   name: string;
   @ApiProperty()
-  description: string;
-  @ApiProperty()
   created_date: Date;
 
   @ApiProperty({ type: LanguageSanitized })
@@ -132,7 +129,6 @@ export class DialectSanitized {
     return {
       id: dialect.id,
       name: dialect.name,
-      description: dialect.description,
       created_date: dialect.created_date,
       language: dialect.language && LanguageSanitized.from(dialect.language),
     };
@@ -203,7 +199,6 @@ export class OrganizationSanitized {
 export const RegionSanitizedFields = {
   id: true,
   name: true,
-  description: true,
   created_date: true,
 };
 export class RegionSanitized {
@@ -212,8 +207,6 @@ export class RegionSanitized {
   @ApiProperty()
   name: string;
   @ApiProperty()
-  description: string;
-  @ApiProperty()
   created_date: Date;
   @ApiProperty({ type: CountrySanitized })
   country?: CountrySanitized;
@@ -221,7 +214,6 @@ export class RegionSanitized {
     return {
       id: region.id,
       name: region.name,
-      description: region.description,
       created_date: region.created_date,
       country: region.country && CountrySanitized.from(region.country),
     };

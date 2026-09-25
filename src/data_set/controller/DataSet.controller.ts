@@ -302,7 +302,7 @@ export class DataSetController {
   @Get('/facilitator/contributor/submissions/:task_id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.FACILITATOR)
-  @ApiQuery({ name: 'contributor_id', required: true, type: String })
+  @ApiQuery({ name: 'contributor_id', required: false, type: String })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   async getContributorDataSets(

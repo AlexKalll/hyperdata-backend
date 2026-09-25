@@ -423,7 +423,6 @@ In `.env`, enable the demo users:
 ```env
 NODE_ENV=development
 ENABLE_DEMO_USERS_SEED=true
-DEMO_USERS_PASSWORD=<private-password-at-least-8-characters>
 ```
 
 **Native (without Docker):** with dependencies installed and `DATABASE_URL` pointing to a database reachable from your host:
@@ -438,23 +437,18 @@ npm run seed
 ```bash
 docker compose up -d --build
 docker compose exec -T app npm run migration:run:prod
-docker compose exec -T \
-  -e NODE_ENV=development \
-  -e ENABLE_DEMO_USERS_SEED=true \
-  -e DEMO_USERS_PASSWORD="$DEMO_USERS_PASSWORD" \
-  app npm run seed:prod
+docker compose exec -T -e NODE_ENV=development -e ENABLE_DEMO_USERS_SEED=true app npm run seed:prod
 ```
 
-The seed uses the private `DEMO_USERS_PASSWORD` environment value for all demo
-accounts. Do not commit or paste that value into documentation.
+All demo accounts use password `12345678`:
 
 | Role | Accounts |
 | --- | --- |
-| SuperAdmin | `admin@gmail.com` |
-| ProjectManager | `pm@gmail.com` |
-| Facilitator | `faci@gmail.com` |
-| Reviewer | `rev@gmail.com` |
-| Contributor (mobile) | `cont1@gmail.com`, `cont2@gmail.com` |
+| SuperAdmin | `super@gmail.com`, `super1@gmail.com` |
+| ProjectManager | `proj@gmail.com`, `proj1@gmail.com` |
+| Facilitator | `faci@gmail.com`, `faci1@gmail.com` |
+| Reviewer | `rev@gmail.com`, `rev2@gmail.com` |
+| Contributor (mobile) | `cont@gmail.com`, `cont1@gmail.com` |
 
 For mobile login, enter `123456789` or `234567890` in the phone field; the app adds `+251`.
 The seed creates or updates demo profiles, but leaves project/task creation and assignment to the UI.
