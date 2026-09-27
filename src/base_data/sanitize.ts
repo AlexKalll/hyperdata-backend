@@ -253,6 +253,7 @@ export class RejectionTypeSanitized {
 export const SectorSanitizedFields = {
   id: true,
   name: true,
+  description: true,
   created_date: true,
 };
 export class SectorSanitized {
@@ -263,11 +264,15 @@ export class SectorSanitized {
   name: string;
 
   @ApiProperty()
+  description: string;
+
+  @ApiProperty()
   created_date: Date;
   static from(sector: Sector) {
     return {
       id: sector.id,
       name: sector.name,
+      description: sector.description,
       created_date: sector.created_date,
     };
   }
