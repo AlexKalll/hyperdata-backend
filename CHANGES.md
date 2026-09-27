@@ -303,6 +303,12 @@ record.
 - Resolved task instruction deletion by the task ID used in the public route.
 - Sanitized password-only Redis URLs in startup logs.
 
+## 2026-09-27 - Reference-data administration fixes
+
+- Added global-validation allowlist metadata to organization and zone Zod DTOs so
+  valid create/update fields reach their route-level Zod validation.
+- Included sector descriptions in sanitized list responses for the admin table.
+
 ## How to record future changes
 
 When making non-trivial modifications, add a short entry under a new dated
