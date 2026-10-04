@@ -309,6 +309,14 @@ record.
   valid create/update fields reach their route-level Zod validation.
 - Included sector descriptions in sanitized list responses for the admin table.
 
+## 2026-09-27 - Contributor retry recovery
+
+- Marked a rejected submission retryable when the contributor still has the
+  configured retry available, including the one-retry configuration.
+- Kept Redis retry metadata consistent with the database submission limit.
+- Aligned the contributor submission detail response with the same retry-count
+  semantics.
+
 ## How to record future changes
 
 When making non-trivial modifications, add a short entry under a new dated

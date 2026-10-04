@@ -1243,9 +1243,12 @@ export class DataSetService {
         dataSet.status === DataSetStatus.PENDING
       );
     });
-    const hasReachedMaxRetry =
-      microTask.dataSets.length >=
-      microTask.task.taskRequirement.max_retry_per_task;
+    // max_retry_per_task counts retries after the initial submission. The
+    // stored dataset count therefore includes the initial attempt.
+    const retriesUsed = Math.max(microTask.dataSets.length - 1, 0);
+    const canRetry =
+      !hasApprovedOrPendingDatasets &&
+      retriesUsed < microTask.task.taskRequirement.max_retry_per_task;
     if (microTask.task.taskType.task_type == 'text-audio') {
       microTask.dataSets = await this.fileService.getPreSignedDatasets(
         microTask.dataSets,
@@ -1258,7 +1261,7 @@ export class DataSetService {
       ),
       current_retry: microTask.dataSets.length,
       allowed_retry: microTask.task.taskRequirement.max_retry_per_task,
-      can_retry: hasApprovedOrPendingDatasets ? false : hasReachedMaxRetry,
+      can_retry: canRetry,
     };
   }
 }
