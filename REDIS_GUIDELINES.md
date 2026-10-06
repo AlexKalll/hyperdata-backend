@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Leyu API project uses Redis as a caching layer and message broker for background job processing. This document provides comprehensive guidelines for Redis integration, focusing on caching contributor tasks, microtasks, file paths, and managing MinIO file upload queues through BullMQ.
+The Mahder API project uses Redis as a caching layer and message broker for background job processing. This document provides comprehensive guidelines for Redis integration, focusing on caching contributor tasks, microtasks, file paths, and managing MinIO file upload queues through BullMQ.
 
 ## Table of Contents
 
@@ -754,7 +754,7 @@ version: '3.8'
 services:
   redis:
     image: redis:7-alpine
-    container_name: leyu-redis
+    container_name: mahder-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -764,7 +764,7 @@ services:
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     networks:
-      - leyu-network
+      - mahder-network
     healthcheck:
       test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 10s
@@ -775,7 +775,7 @@ volumes:
   redis_data:
 
 networks:
-  leyu-network:
+  mahder-network:
     driver: bridge
 ```
 

@@ -3,8 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(
-  ) {
+  constructor() {
     const secret = process.env.JWT_SECRET;
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -18,6 +17,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Invalid Token');
     }
     // Logger.error('JWT Payload', payload.sub);
-    return { id: payload.sub };
+    return { id: payload.sub, onboarding: payload.onboarding === true };
   }
 }

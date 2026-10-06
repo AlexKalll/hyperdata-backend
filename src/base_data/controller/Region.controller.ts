@@ -20,6 +20,7 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger';
 import { RegionService } from '../service/Region.service';
+import { ReferenceDataAdminGuard } from '../guard/ReferenceDataAdmin.guard';
 import {
   CreateRegionDto,
   SearchRegionDto,
@@ -31,6 +32,7 @@ import { RolesGuard } from 'src/auth/guard/role.guard';
 import { PaginatedResult } from 'src/utils/paginate.util';
 import { RegionSanitized } from '../sanitize';
 @Controller('/setting/region')
+@UseGuards(JwtAuthGuard, RolesGuard, ReferenceDataAdminGuard)
 @ApiTags('Region')
 export class RegionController {
   constructor(private readonly regionService: RegionService) {}

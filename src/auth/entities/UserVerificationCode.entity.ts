@@ -27,6 +27,9 @@ export class UserVerificationCode {
   })
   status: string;
 
+  @Column({ type: 'integer', default: 0 })
+  attempt_count: number;
+
   @CreateDateColumn()
   created_date: Date;
 

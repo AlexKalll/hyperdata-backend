@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, QueryRunner, Repository } from 'typeorm';
+import { FindOptionsWhere, In, QueryRunner, Repository } from 'typeorm';
 import { Transaction } from '../entities/Transaction.entity';
 import { PaginationDto } from 'src/common/dto/Pagination.dto';
 import { paginate, PaginatedResult } from 'src/utils/paginate.util';
@@ -23,6 +23,17 @@ export class TransactionService {
     const manager = queryRunner.manager;
     const transaction = manager.create(Transaction, transactionData);
     return await manager.save(transaction);
+  }
+  async findOne(id: string): Promise<Transaction | null> {
+    return this.transactionRepository.findOne({ where: { id } });
+  }
+  async findPendingPayouts(): Promise<Transaction[]> {
+    return this.transactionRepository.find({
+      where: {
+        type: 'Withdraw',
+        status: In(['Processing', 'Submitted']),
+      },
+    });
   }
   async getUserTransactionsPaginated(
     userId: string,

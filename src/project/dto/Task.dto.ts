@@ -604,10 +604,12 @@ export class GetTaskAnAssignedMembersDto extends PaginationDto {
 export class UpdateTaskPaymentDto {
   @ApiProperty()
   @IsNumber()
+  @Min(0)
   contributor_credit_per_microtask: number;
 
   @ApiProperty()
   @IsNumber()
+  @Min(0)
   reviewer_credit_per_microtask: number;
 }
 

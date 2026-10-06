@@ -19,6 +19,8 @@ import { FileService } from 'src/common/service/File.service';
 import { ActionEvents } from 'src/utils/events/ActionEvents';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { UserSanitize } from '../sanitize';
+import { generateOtp, hashOtp } from 'src/utils/security/credential.util';
+import { RefreshSessionService } from './RefreshSession.service';
 @Injectable()
 export class AuthService {
   constructor(
@@ -31,6 +33,7 @@ export class AuthService {
     private fileService: FileService,
     private jwtService: JwtService,
     private eventEmitter: EventEmitter2,
+    private refreshSessions: RefreshSessionService,
   ) {}
   /**
    * Signs in a user based on the username and password
@@ -141,16 +144,13 @@ export class AuthService {
    */
   async refreshToken(refresh_token: string): Promise<any> {
     try {
-      const user = await this.jwtService.verify(refresh_token);
-      const access_token = this.jwtService.sign({
-        sub: user?.sub,
-        email: user?.email,
+      if (!this.refreshSessions?.rotate) throw new UnauthorizedException();
+      const userId = await this.refreshSessions.rotate(refresh_token);
+      const user = await this.usersService.findOneWithPassword({
+        where: { id: userId },
       });
-      const new_refresh_token = this.jwtService.sign({
-        sub: user?.sub,
-        email: user?.email,
-      });
-      return { access_token, new_refresh_token };
+      if (!user || !user.is_active) throw new UnauthorizedException();
+      return this.generateToken(user.id, user.email);
     } catch (error) {
       throw new UnauthorizedException();
     }
@@ -198,7 +198,7 @@ export class AuthService {
     if (!user.is_active) {
       throw new UnauthorizedException('User is not active');
     }
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = generateOtp();
     const code_expiration_date = new Date();
     code_expiration_date.setMinutes(code_expiration_date.getMinutes() + 5);
 
@@ -206,7 +206,7 @@ export class AuthService {
     if (username == user.email) {
       await this.mailService.sendEmail(
         user.email,
-        'Welcome to Leyu platform',
+        'Welcome to Mahder platform',
         message,
       );
     } else {
@@ -214,7 +214,7 @@ export class AuthService {
     }
     const uv = await this.userVerificationService.create({
       username: username,
-      code: code,
+      code: hashOtp(code),
       expiration_date: code_expiration_date,
       status: 'pending',
     });
@@ -250,23 +250,29 @@ export class AuthService {
       user.id,
       body.password,
     );
+    await this.refreshSessions.revokeAll(user.id);
     return 'Password changed successfully';
   }
   /**
    * Verifies a user's OTP given a verification code
    * @throws {BadRequestException} - If the verification code is invalid or expired
    */
+  async validateOtp(body: { username: string; code: string }): Promise<void> {
+    try {
+      await this.userVerificationService.validate(body.username, body.code);
+    } catch {
+      throw new BadRequestException('Invalid or expired code');
+    }
+  }
   async verifyOtp(body: { username: string; code: string }): Promise<void> {
-    const userVerificationCode = await this.userVerificationService.findOne({
-      where: { username: body.username, code: body.code },
-    });
-    if (!userVerificationCode) {
-      throw new BadRequestException('Invalid code');
+    return this.consumeOtp(body);
+  }
+  async consumeOtp(body: { username: string; code: string }): Promise<void> {
+    try {
+      await this.userVerificationService.consume(body.username, body.code);
+    } catch {
+      throw new BadRequestException('Invalid or expired code');
     }
-    if (userVerificationCode.expiration_date < new Date()) {
-      throw new BadRequestException('Code expired');
-    }
-    return;
   }
   /**
    * Generates an access token and a refresh token for a user
@@ -279,10 +285,7 @@ export class AuthService {
     email?: string,
   ): Promise<{ access_token: string; refresh_token: string }> {
     const access_token = this.jwtService.sign({ sub: id, email: email });
-    const refresh_token = this.jwtService.sign(
-      { sub: id, email: email },
-      { expiresIn: '7d', secret: process.env.JWT_REFRESH_SECRET },
-    );
+    const refresh_token = await this.refreshSessions.create(id);
     return { access_token, refresh_token };
   }
 }

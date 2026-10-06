@@ -67,9 +67,10 @@ import { UserTask } from '../entities/UserTask.entity';
 import { User } from 'src/auth/entities/User.entity';
 import { Task } from '../entities/Task.entity';
 import { TaskServiceHelperService } from '../service/TaskServiceHelper.service';
+import { ProjectScopeGuard } from '../guard/ProjectScope.guard';
 @Controller('/project-mgmt/task')
 @ApiTags('Task')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, ProjectScopeGuard)
 @ApiBearerAuth()
 @ApiExtraModels(FindTaskMembersDto)
 export class TaskController {

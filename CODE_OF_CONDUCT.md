@@ -36,7 +36,7 @@ Examples of unacceptable behavior include:
 
 ## Project-Specific Guidelines
 
-Given the nature of the Leyu API project as a data collection and task management platform, we have additional guidelines:
+Given the nature of the Mahder API project as a data collection and task management platform, we have additional guidelines:
 
 ### Data Handling and Privacy
 * Respect user privacy and data protection principles
@@ -84,7 +84,7 @@ This includes:
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement at [conduct@leyu-api.com](mailto:conduct@leyu-api.com).
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement at [conduct@mahder-api.com](mailto:conduct@mahder-api.com).
 
 All complaints will be reviewed and investigated promptly and fairly.
 
@@ -124,7 +124,7 @@ Community leaders will follow these Community Impact Guidelines in determining t
 
 If you experience or witness unacceptable behavior, please report it by:
 
-1. **Email**: Send a detailed report to [conduct@leyu-api.com](mailto:conduct@leyu-api.com)
+1. **Email**: Send a detailed report to [conduct@mahder-api.com](mailto:conduct@mahder-api.com)
 2. **Direct Contact**: Reach out to project maintainers directly
 3. **Anonymous Reporting**: Use our anonymous reporting form (if available)
 
@@ -151,7 +151,7 @@ When reporting an incident, please include:
 
 If you disagree with an enforcement decision, you may appeal by:
 
-1. Sending an email to [conduct-appeals@leyu-api.com](mailto:conduct-appeals@leyu-api.com)
+1. Sending an email to [conduct-appeals@mahder-api.com](mailto:conduct-appeals@mahder-api.com)
 2. Providing additional context or information
 3. Explaining why you believe the decision should be reconsidered
 
@@ -174,7 +174,7 @@ We believe in recognizing positive contributions to our community. We encourage:
 
 ## Questions
 
-If you have questions about this Code of Conduct, please contact us at [conduct@leyu-api.com](mailto:conduct@leyu-api.com).
+If you have questions about this Code of Conduct, please contact us at [conduct@mahder-api.com](mailto:conduct@mahder-api.com).
 
 ---
 

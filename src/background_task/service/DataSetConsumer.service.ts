@@ -15,7 +15,7 @@ import { TaskService } from 'src/project/service/Task.service';
 import { UserTask } from 'src/project/entities/UserTask.entity';
 import { MicroTask } from 'src/data_set/entities/MicroTask.entity';
 import { checkIfMicroTasIskRejectedAndTotalAttempts } from 'src/utils/MicroTask.util';
-import { ConfigService } from '@nestjs/config';
+import { DataSetStatus } from 'src/utils/constants/DataSetStatus.constant';
 @Injectable()
 export class DatasetConsumer {
   private readonly logger = new Logger(DatasetConsumer.name);
@@ -31,7 +31,7 @@ export class DatasetConsumer {
     private readonly notificationService: NotificationService,
     private readonly userScoreService: UserScoreService,
     private readonly taskService: TaskService,
-    private readonly microTaskService: MicroTaskService
+    private readonly microTaskService: MicroTaskService,
   ) {}
   @RabbitSubscribe({
     exchange: process.env.DATASET_RABBITMQ_EXCHANGE_NAME || 'dataset.exchange',
@@ -64,6 +64,15 @@ export class DatasetConsumer {
     await queryRunner.startTransaction();
     try {
       //  Get the dataset
+      const lockedDataSet = await queryRunner.manager.findOne(DataSet, {
+        where: { id: datasetId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!lockedDataSet) {
+        await queryRunner.rollbackTransaction();
+        this.logger.warn(`Dataset with id ${datasetId} not found.`);
+        return;
+      }
       const dataSet = await queryRunner.manager.findOne(DataSet, {
         where: { id: datasetId },
         relations: {
@@ -74,9 +83,12 @@ export class DatasetConsumer {
           contributor: true,
         },
       });
-      if (!dataSet) {
-        await queryRunner.rollbackTransaction();
-        this.logger.warn(`Dataset with id ${datasetId} not found.`);
+      if (!dataSet) throw new Error(`Dataset with id ${datasetId} disappeared`);
+      if (
+        dataSet.status !== DataSetStatus.REJECTED ||
+        dataSet.is_paid_for_reviewer
+      ) {
+        await queryRunner.commitTransaction();
         return;
       }
       //  Remove Assignment from reviewer
@@ -126,6 +138,9 @@ export class DatasetConsumer {
         },
         queryRunner,
       );
+      await queryRunner.manager.update(DataSet, dataSet.id, {
+        is_paid_for_reviewer: true,
+      });
       // Send Notification to the user
       await this.notificationService.create({
         user_id: dataSet.contributor_id,
@@ -150,6 +165,7 @@ export class DatasetConsumer {
       this.logger.error(
         `Error processing dataset ${datasetId}: ${err.message}`,
       );
+      throw err;
     } finally {
       await queryRunner.release();
     }
@@ -161,6 +177,14 @@ export class DatasetConsumer {
     await queryRunner.startTransaction();
     try {
       // get data sets
+      const lockedDataSet = await queryRunner.manager.findOne(DataSet, {
+        where: { id: datasetId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!lockedDataSet) {
+        await queryRunner.commitTransaction();
+        return;
+      }
       const dataSet = await queryRunner.manager.findOne(DataSet, {
         where: { id: datasetId },
         relations: {
@@ -171,7 +195,12 @@ export class DatasetConsumer {
           contributor: true,
         },
       });
-      if (!dataSet) {
+      if (!dataSet) throw new Error(`Dataset with id ${datasetId} disappeared`);
+      if (dataSet.status !== DataSetStatus.APPROVED) {
+        await queryRunner.commitTransaction();
+        return;
+      }
+      if (dataSet.is_paid_for_contributor && dataSet.is_paid_for_reviewer) {
         await queryRunner.commitTransaction();
         return;
       }
@@ -262,19 +291,26 @@ export class DatasetConsumer {
       // credit contributor and reviewer wallet
       const score = await this.scoreService.get();
       const scoreValueInBIRR = score.value_in_birr;
-      await this.walletService.addFunds(
-        dataSet.contributor_id,
-        taskPayment.contributor_credit_per_microtask * scoreValueInBIRR,
-        { data_set_id: datasetId, code: dataSet.code },
-        queryRunner,
-      );
+      if (!dataSet.is_paid_for_contributor) {
+        await this.walletService.addFunds(
+          dataSet.contributor_id,
+          taskPayment.contributor_credit_per_microtask * scoreValueInBIRR,
+          { data_set_id: datasetId, code: dataSet.code },
+          queryRunner,
+        );
+        dataSet.is_paid_for_contributor = true;
+      }
 
-      await this.walletService.addFunds(
-        dataSet.reviewer.id,
-        taskPayment.reviewer_credit_per_microtask * scoreValueInBIRR,
-        { data_set_id: datasetId, code: dataSet.code },
-        queryRunner,
-      );
+      if (!dataSet.is_paid_for_reviewer) {
+        await this.walletService.addFunds(
+          dataSet.reviewer.id,
+          taskPayment.reviewer_credit_per_microtask * scoreValueInBIRR,
+          { data_set_id: datasetId, code: dataSet.code },
+          queryRunner,
+        );
+        dataSet.is_paid_for_reviewer = true;
+      }
+      await queryRunner.manager.save(dataSet);
       // create and send notification to contributor
       await this.notificationService.create({
         user_id: dataSet.contributor_id,
@@ -297,10 +333,9 @@ export class DatasetConsumer {
       return;
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      return;
+      throw error;
     } finally {
       await queryRunner.release();
-      return;
     }
   }
 }

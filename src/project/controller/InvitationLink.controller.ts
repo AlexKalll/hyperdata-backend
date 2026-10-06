@@ -14,6 +14,7 @@ import { InvitationLinkService } from '../service/InvitationLink.service';
 import { Role } from 'src/auth/decorators/roles.enum';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { ZodValidationPipe } from 'nestjs-zod';
+import { ProjectScopeGuard } from '../guard/ProjectScope.guard';
 import { PaginationDto } from 'src/common/dto/Pagination.dto';
 import {
   AcceptInvitationDto,
@@ -36,7 +37,7 @@ export class InivitationController {
   @Get('/project/:project_id')
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, ProjectScopeGuard)
   @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
   async findProjectInvitationLinks(
     @Param('project_id') project_id: string,
@@ -62,7 +63,7 @@ export class InivitationController {
   @Get('/task/:task_id')
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, ProjectScopeGuard)
   @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
   async findTaskInvitationLinks(
     @Param('task_id') task_id: string,
@@ -79,7 +80,7 @@ export class InivitationController {
     );
   }
   @Post('/project/:project_id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, ProjectScopeGuard)
   @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
   async createProjectInvitationLink(
     @Param('project_id') project_id: string,
@@ -92,7 +93,7 @@ export class InivitationController {
     );
   }
   @Post('/task/:task_id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, ProjectScopeGuard)
   @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
   async invite(
     @Param('task_id') task_id: string,

@@ -12,7 +12,7 @@ import { PublisherService } from './service/RabbitPublish.service';
 import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TestController } from './controllers/Test.controller';
-import {AudioService } from './service/Audio.service'
+import { AudioService } from './service/Audio.service';
 @Global()
 @Module({
   imports: [
@@ -24,7 +24,7 @@ import {AudioService } from './service/Audio.service'
         exchanges: [
           {
             name: config.get<string>('RABBITMQ_EXCHANGE_NAME') as string,
-            type: config.get<string>('RABBITMQ_EXCHANGE_TYPE') as any,
+            type: config.get<string>('RABBITMQ_EXCHANGE_TYPE'),
           },
           {
             name: config.get<string>(
@@ -46,14 +46,19 @@ import {AudioService } from './service/Audio.service'
       inject: [ConfigService],
     }),
   ],
-  controllers: [ActivityLogController, NotificationController, TestController],
+  // Test endpoints can publish workflow events and must never be registered in production.
+  controllers: [
+    ActivityLogController,
+    NotificationController,
+    ...(process.env.NODE_ENV === 'production' ? [] : [TestController]),
+  ],
   providers: [
     PaginationService,
     FileService,
     ActivityLogService,
     NotificationService,
     PublisherService,
-    AudioService
+    AudioService,
   ],
   exports: [
     PaginationService,
@@ -61,7 +66,7 @@ import {AudioService } from './service/Audio.service'
     ActivityLogService,
     NotificationService,
     PublisherService,
-    AudioService
+    AudioService,
   ],
 })
 export class CommonModule {}

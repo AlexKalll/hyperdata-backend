@@ -28,6 +28,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     //  transforming zod errors
     if (message instanceof Array) {
+      response.status(status).json({
+        message: 'Validation failed',
+        code: status,
+        data: null,
+        errors: message,
+        path: request.url,
+        timestamp: new Date().toISOString(),
+      });
+      return;
     }
     response.status(status).json({
       message,

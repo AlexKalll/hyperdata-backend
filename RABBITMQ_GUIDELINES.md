@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Leyu API project uses RabbitMQ as a message broker for asynchronous communication between services. This document provides comprehensive guidelines for working with RabbitMQ in the project, including setup, configuration, best practices, and troubleshooting.
+The Mahder API project uses RabbitMQ as a message broker for asynchronous communication between services. This document provides comprehensive guidelines for working with RabbitMQ in the project, including setup, configuration, best practices, and troubleshooting.
 
 ## Table of Contents
 
@@ -555,13 +555,13 @@ await this.amqpConnection.publish(
 **Authentication and Authorization**:
 ```bash
 # Use dedicated user with limited permissions
-RABBITMQ_URI=amqp://leyu_api:secure_password@rabbitmq:5672/leyu_vhost
+RABBITMQ_URI=amqp://mahder_api:secure_password@rabbitmq:5672/mahder_vhost
 ```
 
 **TLS Configuration**:
 ```bash
 # Enable TLS in production
-RABBITMQ_URI=amqps://leyu_api:secure_password@rabbitmq:5671/leyu_vhost
+RABBITMQ_URI=amqps://mahder_api:secure_password@rabbitmq:5671/mahder_vhost
 ```
 
 ### Clustering and High Availability
@@ -569,7 +569,7 @@ RABBITMQ_URI=amqps://leyu_api:secure_password@rabbitmq:5671/leyu_vhost
 **Multi-node Setup**:
 ```bash
 # Configure multiple RabbitMQ nodes
-RABBITMQ_URI=amqp://user:pass@node1:5672,node2:5672,node3:5672/leyu_vhost
+RABBITMQ_URI=amqp://user:pass@node1:5672,node2:5672,node3:5672/mahder_vhost
 ```
 
 **Queue Mirroring**:
@@ -692,24 +692,24 @@ version: '3.8'
 services:
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: leyu-rabbitmq
+    container_name: mahder-rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: admin
       RABBITMQ_DEFAULT_PASS: admin123
-      RABBITMQ_DEFAULT_VHOST: leyu
+      RABBITMQ_DEFAULT_VHOST: mahder
     ports:
       - "5672:5672"
       - "15672:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
-      - leyu-network
+      - mahder-network
 
 volumes:
   rabbitmq_data:
 
 networks:
-  leyu-network:
+  mahder-network:
     driver: bridge
 ```
 

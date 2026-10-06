@@ -537,7 +537,7 @@ export class TaskService {
     if (user) {
       this.emailService.sendEmail(
         user.email,
-        'Welcome to Leyu platform',
+        'Welcome to Mahder platform',
         `
         Dear ${user.first_name} ${user.middle_name},you are assigned as a facilitator for a task ${task.name}
        
@@ -557,7 +557,7 @@ export class TaskService {
       // Send email to user with random password
       this.emailService.sendEmail(
         user.email,
-        'Welcome to Leyu platform',
+        'Welcome to Mahder platform',
         `
           Dear user, Welcome to our platform,you are assigned as a facilitator for a task ${task.name}
           Your password is ${randomPassword}, you can change it later
@@ -615,7 +615,7 @@ export class TaskService {
     if (user) {
       this.emailService.sendEmail(
         user.email,
-        'Welcome to Leyu platform',
+        'Welcome to Mahder platform',
         `
         Dear ${user.first_name} ${user.middle_name},you are assigned as a reviewer for a task ${task.name}
        
@@ -635,7 +635,7 @@ export class TaskService {
       // Send email to user with random password
       this.emailService.sendEmail(
         user.email,
-        'Welcome to Leyu platform',
+        'Welcome to Mahder platform',
         `
           Dear user, Welcome to our platform,you are assigned as a reviewer for a task ${task.name}
           Your password is ${randomPassword}, you can change it later
@@ -676,7 +676,7 @@ export class TaskService {
     task_id: string,
     contributor_ids: string[],
     queryRunner: QueryRunner,
-  ): Promise<UserTask[] | any> {
+  ): Promise<UserTask[]> {
     const task: Task | null = await this.findOne({
       where: { id: task_id },
       relations: { userToTasks: true },
@@ -727,7 +727,7 @@ export class TaskService {
           );
         }),
       );
-      return userTasks;
+      return userTasks.filter((ut): ut is UserTask => ut !== null);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -1011,7 +1011,7 @@ export class TaskService {
     if (userTaskBefore.is_flagged) {
       this.emailService.sendEmail(
         userTaskBefore.user.email,
-        'Leyu platform',
+        'Mahder platform',
         `
         Dear ${userTaskBefore.user.first_name} ${userTaskBefore.user.middle_name},you are flagged from the task ${userTaskBefore.task.name}
         `,
@@ -1391,6 +1391,15 @@ export class TaskService {
     return total_projects;
   }
   async updateTaskPayment(task_id: string, payment: UpdateTaskPaymentDto) {
+    const task = await this.taskRepository.findOne({ where: { id: task_id } });
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+    if (task.distribution_started) {
+      throw new BadRequestException(
+        'Payment rates cannot be changed after task distribution starts',
+      );
+    }
     return await this.taskPaymentService.update(task_id, payment);
   }
   /**

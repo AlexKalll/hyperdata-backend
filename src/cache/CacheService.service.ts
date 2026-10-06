@@ -13,9 +13,7 @@ import {
 
 @Injectable()
 export class CacheService implements OnModuleInit, OnModuleDestroy {
-  constructor(
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly configService: ConfigService) {}
   async onModuleInit() {
     const redisUrl = this.configService.get<string>('REDIS_URL') as string;
     this.client = new Redis(redisUrl);
@@ -175,9 +173,12 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
         );
         if (microTask) {
           microTask.acceptance_status = 'REJECTED';
+          // A rejection changes status; it does not add another attempt.
           microTask.can_retry =
-            microTask.allowed_retry > microTask.current_retry + 1;
-          microTask.current_retry = microTask.current_retry + 1;
+            microTask.allowed_retry > microTask.current_retry;
+          if (microTask.dataSet) {
+            microTask.dataSet.status = 'Rejected';
+          }
 
           await this.writeContributorTaskMicroTasks(
             contributorId,

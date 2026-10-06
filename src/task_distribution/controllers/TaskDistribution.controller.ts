@@ -58,7 +58,7 @@ export class TaskDistributionController {
     private readonly taskRedistributionService: TaskRedistributionService,
     private readonly getTaskService: GetTasksService,
     private readonly fileService: FileService,
-    private readonly audioService:AudioService,
+    private readonly audioService: AudioService,
     private readonly dataSource: DataSource,
     @InjectQueue('file-upload')
     private readonly fileQueue: Queue,
@@ -356,15 +356,13 @@ export class TaskDistributionController {
     if (!task_id) {
       throw new Error('Task ID is required');
     }
-    try {
-      await this.taskDistributionService.distributeTaskForReviewers(task_id);
-      return { message: ' Task distributed for reviewers' };
-    } catch (error) {
-      throw error;
-    }
+    await this.taskDistributionService.distributeTaskForReviewers(task_id);
+    return { message: ' Task distributed for reviewers' };
   }
 
   @Post('/re-distribution')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
   @ApiOperation({ summary: 'Initialize task distribution' })
   @ApiResponse({ status: 201, description: 'Task distribution initialized' })
   async initializeTaskReDistribution() {
@@ -409,53 +407,49 @@ export class TaskDistributionController {
     const submissions: {
       micro_task_id: string;
       file_path: string;
-      audio_duration:number;
+      audio_duration: number;
     }[] = [];
     let { is_test } = req.body; // Get batch from request body, default to false
     is_test = is_test === 'true' || is_test === true; // Convert to boolean
-    try {
-      for (const file of files) {
-        submissions.push({
-          micro_task_id: file.fieldname,
-          file_path: '', //  file.key, // Use the file key as the file path
-           audio_duration:await this.audioService.getAudioDuration(file.path),
-        });
-      }
-
-      const data_Sets =
-        await this.taskSubmissionService.submitMultipleAudioDatasets(
-          req.user.id,
-          submissions,
-          task_id,
-          is_test,
-        );
-      for (const file of files) {
-        const d = data_Sets.find((d) => d.micro_task_id == file.fieldname);
-        if (!d) {
-          continue;
-        }
-        await this.fileQueue.add(
-          'upload',
-          {
-            path: file.path,
-            filename: file.filename,
-            mimetype: file.mimetype,
-            dataSetId: d.id,
-          },
-          {
-            removeOnComplete: true,
-            attempts: 3,
-            backoff: {
-              type: 'exponential',
-              delay: 2000,
-            },
-          },
-        );
-      }
-      // await queryRunner.commitTransaction();
-      return data_Sets;
-    } catch (error) {
-      throw error;
+    for (const file of files) {
+      submissions.push({
+        micro_task_id: file.fieldname,
+        file_path: '', //  file.key, // Use the file key as the file path
+        audio_duration: await this.audioService.getAudioDuration(file.path),
+      });
     }
+
+    const data_Sets =
+      await this.taskSubmissionService.submitMultipleAudioDatasets(
+        req.user.id,
+        submissions,
+        task_id,
+        is_test,
+      );
+    for (const file of files) {
+      const d = data_Sets.find((d) => d.micro_task_id == file.fieldname);
+      if (!d) {
+        continue;
+      }
+      await this.fileQueue.add(
+        'upload',
+        {
+          path: file.path,
+          filename: file.filename,
+          mimetype: file.mimetype,
+          dataSetId: d.id,
+        },
+        {
+          removeOnComplete: true,
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 2000,
+          },
+        },
+      );
+    }
+    // await queryRunner.commitTransaction();
+    return data_Sets;
   }
 }

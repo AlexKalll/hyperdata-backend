@@ -1,4 +1,5 @@
 import axios from 'axios';
+import * as jwt from 'jsonwebtoken';
 export class SantimpaySdk {
   private privateKey: string;
   private merchantId: string;
@@ -76,7 +77,7 @@ export class SantimpaySdk {
         `${this.baseUrl}/payout-transfer`,
         payload,
       );
-      if (response.status === 200) {
+      if (response.status >= 200 && response.status < 300) {
         return response.data;
       } else {
         throw new Error('Failed to initiate B2C');
@@ -103,7 +104,6 @@ export class SantimpaySdk {
       merchantId: this.merchantId,
       generated: time,
     };
-    console.log(signES256(payload, this.privateKey));
     return signES256(payload, this.privateKey);
   }
   async directPayment(
@@ -197,12 +197,12 @@ export default SantimpaySdk;
 export function sign(
   payload: any,
   privateKey: string,
-  algorithm: any, //  jwt.Algorithm,
+  algorithm: jwt.Algorithm,
 ) {
-  return;
-  //  jwt.sign(payload, privateKey, {
-  //   algorithm: algorithm,
-  // });
+  if (!privateKey) {
+    throw new Error('Santim Pay signing key is not configured');
+  }
+  return jwt.sign(payload, privateKey, { algorithm });
 }
 export function signES256(payload, privateKey) {
   return sign(payload, privateKey, 'ES256');

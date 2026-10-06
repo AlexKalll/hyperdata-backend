@@ -9,22 +9,25 @@ export class RejectionType1744707251494 implements Seeder {
     factoryManager: SeederFactoryManager,
   ): Promise<any> {
     const repository = dataSource.getRepository(RejectionType);
-    await repository.insert([
-      {
-        id: '92e676cb-517f-4c4a-9546-5d586fc14d70',
-        name: 'Not Qualified',
-        description: 'Not Qualified',
-      },
-      {
-        id: '92e676cb-517f-4c4a-9546-5d586fc14d71',
-        name: 'Not Sufficient',
-        description: 'Not Sufficient',
-      },
-      {
-        id: '92e676cb-517f-4c4a-9546-5d586fc14d72',
-        name: 'Low Audio Quality',
-        description: 'Not Applicable',
-      },
-    ]);
+    await repository.upsert(
+      [
+        {
+          id: '92e676cb-517f-4c4a-9546-5d586fc14d70',
+          name: 'Not Qualified',
+          description: 'Not Qualified',
+        },
+        {
+          id: '92e676cb-517f-4c4a-9546-5d586fc14d71',
+          name: 'Not Sufficient',
+          description: 'Not Sufficient',
+        },
+        {
+          id: '92e676cb-517f-4c4a-9546-5d586fc14d72',
+          name: 'Low Audio Quality',
+          description: 'Not Applicable',
+        },
+      ],
+      ['id'],
+    );
   }
 }

@@ -11,6 +11,7 @@ import { Transaction } from './entities/Transaction.entity';
 import { WalletController } from './controller/Wallet.controller';
 import { TransactionController } from './controller/Transaction.controller';
 import { ScoreValueController } from './controller/ScoreValue.controller';
+import { PayoutReconciliationService } from './service/PayoutReconciliation.service';
 @Module({
   imports: [TypeOrmModule.forFeature([Wallet, ScoreValue, Transaction])],
   controllers: [WalletController, TransactionController, ScoreValueController],
@@ -19,6 +20,7 @@ import { ScoreValueController } from './controller/ScoreValue.controller';
     ScoreValueService,
     TransactionService,
     SantimpaySdk,
+    PayoutReconciliationService,
   ],
   exports: [WalletService, ScoreValueService],
 })

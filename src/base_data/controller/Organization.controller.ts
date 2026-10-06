@@ -21,6 +21,7 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger';
 import { OrganizationService } from '../service';
+import { ReferenceDataAdminGuard } from '../guard/ReferenceDataAdmin.guard';
 import {
   CreateOrganizationDto,
   UpdateOrganizationDto,
@@ -32,6 +33,7 @@ import { RolesGuard } from 'src/auth/guard/role.guard';
 import { OrganizationSanitized } from '../sanitize';
 import { PaginatedResult } from 'src/utils/paginate.util';
 @Controller('/setting/organization')
+@UseGuards(JwtAuthGuard, RolesGuard, ReferenceDataAdminGuard)
 @ApiTags('Organization')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)

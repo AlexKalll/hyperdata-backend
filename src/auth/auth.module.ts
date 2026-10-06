@@ -1,4 +1,5 @@
 import { Global, Module } from '@nestjs/common';
+import { RateLimitModule } from 'src/rate_limit/rate-limit.module';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './controller/auth.controller';
@@ -25,6 +26,11 @@ import { UserDeviceToken } from './entities/UserDeviceToken.entity';
 import { FinanceModule } from 'src/finance/finance.module';
 import { UserScore } from './entities/UserScore.entity';
 import { UserScoreService } from './service/UserScore.service';
+import { RefreshSession } from './entities/RefreshSession.entity';
+import { RefreshSessionService } from './service/RefreshSession.service';
+import { AuthRateLimitGuard } from './guard/auth-rate-limit.guard';
+import { OnboardingAuthGuard } from './guard/onboarding-auth.guard';
+import type { StringValue } from 'ms';
 
 @Global() // Make AuthModule globally available
 @Module({
@@ -38,6 +44,7 @@ import { UserScoreService } from './service/UserScore.service';
       UserVerificationCode,
       UserDeviceToken,
       UserScore,
+      RefreshSession,
     ]), // Import TypeOrmModule for Role and User entitiesM
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -45,16 +52,11 @@ import { UserScoreService } from './service/UserScore.service';
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
         signOptions: {
-          expiresIn: configService.get<string>('JWT_EXPIRES_IN', '24h'),
+          expiresIn: configService.get<string>(
+            'JWT_EXPIRES_IN',
+            '24h',
+          ) as StringValue,
         },
-      }),
-    }),
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_REFRESH_SECRET'),
-        signOptions: { expiresIn: '7d' }, // long-lived
       }),
     }),
     PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -62,6 +64,7 @@ import { UserScoreService } from './service/UserScore.service';
     EmailModule,
     BaseDataModule,
     FinanceModule,
+    RateLimitModule,
   ],
   controllers: [AuthController, UsersController],
   providers: [
@@ -73,6 +76,9 @@ import { UserScoreService } from './service/UserScore.service';
     UserVerificationCodeService,
     UserDeviceTokenService,
     UserScoreService,
+    RefreshSessionService,
+    AuthRateLimitGuard,
+    OnboardingAuthGuard,
   ],
   exports: [
     AuthService,

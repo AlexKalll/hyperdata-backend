@@ -7,7 +7,7 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { s3 } from 'src/config/minio.config';
+import { s3, s3Presigner } from 'src/config/minio.config';
 import { DataSet } from 'src/data_set/entities/DataSet.entity';
 import { MicroTask } from 'src/data_set/entities/MicroTask.entity';
 import { Readable } from 'stream';
@@ -51,7 +51,7 @@ export class FileService {
         Key: objectKey,
       });
 
-      const url = await getSignedUrl(s3, command, {
+      const url = await getSignedUrl(s3Presigner, command, {
         expiresIn: expiresInSeconds,
       });
       return url;
@@ -68,7 +68,7 @@ export class FileService {
     });
     const signedUrls = await Promise.all(
       commands.map((command) =>
-        getSignedUrl(s3, command, { expiresIn: expiresInSeconds }),
+        getSignedUrl(s3Presigner, command, { expiresIn: expiresInSeconds }),
       ),
     );
     return signedUrls;

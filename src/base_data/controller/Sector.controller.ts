@@ -21,6 +21,7 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger';
 import { SectorService } from '../service';
+import { ReferenceDataAdminGuard } from '../guard/ReferenceDataAdmin.guard';
 import { CreateSectorDto, UpdateSectorDto } from '../dto/Sector.dto';
 import { PaginationDto } from 'src/common/dto/Pagination.dto';
 import { ZodValidationPipe } from 'nestjs-zod';
@@ -29,6 +30,7 @@ import { RolesGuard } from 'src/auth/guard/role.guard';
 import { SectorSanitized } from '../sanitize';
 import { PaginatedResult } from 'src/utils/paginate.util';
 @Controller('/setting/sector')
+@UseGuards(JwtAuthGuard, RolesGuard, ReferenceDataAdminGuard)
 @ApiTags('Sector')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)

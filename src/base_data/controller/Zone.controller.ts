@@ -21,6 +21,7 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger';
 import { ZoneService } from '../service/Zone.service';
+import { ReferenceDataAdminGuard } from '../guard/ReferenceDataAdmin.guard';
 import { CreateZoneDto, UpdateZoneDto } from '../dto/Zone.dto';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { PaginationDto } from 'src/common/dto/Pagination.dto';
@@ -29,6 +30,7 @@ import { RolesGuard } from 'src/auth/guard/role.guard';
 import { PaginatedResult } from 'src/utils/paginate.util';
 import { ZoneSanitized } from '../sanitize';
 @Controller('/setting/zone')
+@UseGuards(JwtAuthGuard, RolesGuard, ReferenceDataAdminGuard)
 @ApiTags('Zone')
 export class ZoneController {
   constructor(private readonly zoneService: ZoneService) {}

@@ -1,5 +1,5 @@
 // some.service.ts
-import { Injectable, Logger, } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 import { ConfigService } from '@nestjs/config';
 // contracts/dataset-action.event.ts
@@ -14,29 +14,35 @@ export interface DatasetActionEvent {
 @Injectable()
 export class PublisherService {
   private readonly logger = new Logger(PublisherService.name);
-  private readonly exchangeName:string;
-  private readonly routingKey:string;
-  private readonly queueName:string;
+  private readonly exchangeName: string;
+  private readonly routingKey: string;
+  private readonly queueName: string;
 
-  private readonly dataSetExchangeName:string;
-  private readonly dataSetRoutingKey:string;
-  private readonly dataSetQueueName:string;
+  private readonly dataSetExchangeName: string;
+  private readonly dataSetRoutingKey: string;
+  private readonly dataSetQueueName: string;
   constructor(
     private readonly amqpConnection: AmqpConnection,
     private readonly configService: ConfigService,
   ) {
     this.exchangeName =
-      this.configService.get<string>('RABBITMQ_EXCHANGE_NAME') || 'notifications.exchange';
+      this.configService.get<string>('RABBITMQ_EXCHANGE_NAME') ||
+      'notifications.exchange';
     this.routingKey =
-      this.configService.get<string>('RABBITMQ_ROUTING_KEY') || 'notification.created';
+      this.configService.get<string>('RABBITMQ_ROUTING_KEY') ||
+      'notification.created';
     this.queueName =
-      this.configService.get<string>('RABBITMQ_QUEUE_NAME') || 'notifications.queue';
+      this.configService.get<string>('RABBITMQ_QUEUE_NAME') ||
+      'notifications.queue';
     this.dataSetExchangeName =
-      this.configService.get<string>('DATASET_RABBITMQ_EXCHANGE_NAME') || 'dataset.exchange';
+      this.configService.get<string>('DATASET_RABBITMQ_EXCHANGE_NAME') ||
+      'dataset.exchange';
     this.dataSetRoutingKey =
-      this.configService.get<string>('DATASET_RABBITMQ_ROUTING_KEY') || 'dataset.created';
+      this.configService.get<string>('DATASET_RABBITMQ_ROUTING_KEY') ||
+      'dataset.created';
     this.dataSetQueueName =
-      this.configService.get<string>('DATASET_RABBITMQ_QUEUE_NAME') || 'dataset.queue';
+      this.configService.get<string>('DATASET_RABBITMQ_QUEUE_NAME') ||
+      'dataset.queue';
   }
   async onModuleInit() {
     // await this.sendNotification();
@@ -60,10 +66,7 @@ export class PublisherService {
   async publishNotificationEvent(data: {
     userId: string;
     notificationType:
-      | 'task-assign'
-      | 'task-invitation'
-      | 'task-rejected'
-      | 'task-approved';
+      'task-assign' | 'task-invitation' | 'task-rejected' | 'task-approved';
     displayName: string;
     title: string;
     message?: string;

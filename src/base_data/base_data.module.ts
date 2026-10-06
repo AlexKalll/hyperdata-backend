@@ -38,6 +38,7 @@ import { FlagTypeController } from './controller/FlagType.controller';
 import { AnnotationTypeController } from './controller/AnnotationType.controller';
 import { AnnotationTypeService } from './service/AnnotationType.service';
 import { AnnotationType } from './entities/AnnotationType.entity';
+import { ReferenceDataAdminGuard } from './guard/ReferenceDataAdmin.guard';
 
 @Module({
   imports: [
@@ -81,6 +82,7 @@ import { AnnotationType } from './entities/AnnotationType.entity';
     DataSetAnnotationService,
     OrganizationService,
     AnnotationTypeService,
+    ReferenceDataAdminGuard,
   ],
   exports: [
     LanguageService,

@@ -40,7 +40,10 @@ import { Role } from 'src/auth/decorators/roles.enum';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guard/role.guard';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
-import { multerAudioS3Storage, multerCSVS3Storage } from 'src/config/minio.config';
+import {
+  multerAudioS3Storage,
+  multerCSVS3Storage,
+} from 'src/config/minio.config';
 import { DataSource, FindOptionsWhere, QueryRunner } from 'typeorm';
 import { FileService } from 'src/common/service/File.service';
 import { ActivityLogService } from 'src/common/service/ActivityLog.service';
@@ -52,9 +55,10 @@ import { MicroTask } from '../entities/MicroTask.entity';
 import XLSX from 'xlsx';
 import { Response } from 'express';
 import { MicroTaskRto } from '../rto/MicroTask.rto';
+import { ProjectScopeGuard } from 'src/project/guard/ProjectScope.guard';
 @Controller('workspace/micro-task')
 @ApiTags('MicroTask')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, ProjectScopeGuard)
 @ApiBearerAuth()
 export class MicroTaskController {
   constructor(

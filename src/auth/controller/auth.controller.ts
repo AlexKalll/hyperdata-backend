@@ -16,6 +16,7 @@ import { JwtAuthGuard } from '../guard/jwt-auth.guard';
 import { RolesGuard } from '../guard/role.guard';
 import { Roles } from '../decorators/roles.decorator';
 import { Role } from '../decorators/roles.enum';
+import { AuthRateLimitGuard } from '../guard/auth-rate-limit.guard';
 import {
   ForgotPasswordDto,
   MobileSignInDto,
@@ -26,6 +27,7 @@ import {
 
 @ApiTags('Auth') // This makes it appear first in Swagger
 @Controller('iam/auth')
+@UseGuards(AuthRateLimitGuard)
 export class AuthController {
   constructor(private authService: AuthService) {}
   @HttpCode(HttpStatus.OK)
@@ -72,7 +74,7 @@ export class AuthController {
     @Body()
     verifyOtp: VerifyOtp,
   ) {
-    await this.authService.verifyOtp(verifyOtp);
+    await this.authService.validateOtp(verifyOtp);
     return { message: 'OTP verified successfully' };
   }
 

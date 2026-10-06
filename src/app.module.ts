@@ -37,11 +37,14 @@ import configuration from './config/configuration';
           .valid('development', 'production', 'test', 'provision'),
         JWT_SECRET: Joi.string().required(),
         JWT_REFRESH_SECRET: Joi.string().required(),
+        OTP_HMAC_SECRET: Joi.string().min(32).required(),
+        TRUST_PROXY_HOPS: Joi.number().integer().min(0).max(10).default(0),
         DATABASE_URL: Joi.string().required(),
         DATABASE_SCHEMA: Joi.string().required(),
         REDIS_HOST: Joi.string().required(),
         REDIS_PORT: Joi.number().required(),
         REDIS_URL: Joi.string().required(),
+        REDIS_PASSWORD: Joi.string().min(32).required(),
         RABBITMQ_URI: Joi.string().required(),
         RABBITMQ_QUEUE_NAME: Joi.string().required(),
         RABBITMQ_EXCHANGE_NAME: Joi.string().required(),
@@ -61,6 +64,26 @@ import configuration from './config/configuration';
         MINIO_BUCKET: Joi.string().required(),
         EMAIL_USER: Joi.string().required(),
         EMAIL_PASS: Joi.string().required(),
+        ENABLE_WITHDRAWALS: Joi.string()
+          .valid('true', 'false')
+          .default('false'),
+        PAYMENT_BASE_URL: Joi.string().uri().when('ENABLE_WITHDRAWALS', {
+          is: 'true',
+          then: Joi.required(),
+        }),
+        PAYMENT_MERCHANT_ID: Joi.string().when('ENABLE_WITHDRAWALS', {
+          is: 'true',
+          then: Joi.required(),
+        }),
+        PAYMENT_NOTIFY_URL: Joi.string().uri().allow('').optional(),
+        SANTIM_PAY_PRIVATE_KEY_IN_PEM: Joi.alternatives().conditional(
+          'ENABLE_WITHDRAWALS',
+          {
+            is: 'true',
+            then: Joi.string().min(1).required(),
+            otherwise: Joi.string().allow('').optional(),
+          },
+        ),
       }),
       validationOptions: {
         allowUnknown: true,
@@ -76,7 +99,7 @@ import configuration from './config/configuration';
         },
       },
       defaults: {
-        from: '"Leyu" leyu@gmail.com',
+        from: '"Mahder" mahder@gmail.com',
       },
     }),
     BullModule.forRoot({
@@ -94,7 +117,6 @@ import configuration from './config/configuration';
     BaseDataModule,
     AuthModule,
     CommonModule,
-    ProjectModule,
     ProjectModule,
     DataSetModule,
     CommunicationModule,

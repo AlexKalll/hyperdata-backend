@@ -1,6 +1,6 @@
-# Contributing to Leyu API
+# Contributing to Mahder API
 
-Thank you for your interest in contributing to the Leyu API project! We welcome contributions from developers of all skill levels and backgrounds. This guide will help you get started and ensure your contributions align with our project standards.
+Thank you for your interest in contributing to the Mahder API project! We welcome contributions from developers of all skill levels and backgrounds. This guide will help you get started and ensure your contributions align with our project standards.
 
 ## Table of Contents
 
@@ -19,7 +19,7 @@ Thank you for your interest in contributing to the Leyu API project! We welcome 
 
 ## Code of Conduct
 
-This project and everyone participating in it is governed by our [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [conduct@leyu-api.com](mailto:conduct@leyu-api.com).
+This project and everyone participating in it is governed by our [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [conduct@mahder-api.com](mailto:conduct@mahder-api.com).
 
 ## Getting Started
 
@@ -50,11 +50,11 @@ If you're new to open source or this project:
 
 ```bash
 # Fork the repository on GitHub, then clone your fork
-git clone https://github.com/YOUR_USERNAME/leyu-backend.git
-cd leyu-backend
+git clone https://github.com/YOUR_USERNAME/hyperdata-backend.git
+cd hyperdata-backend
 
 # Add the original repository as upstream
-git remote add upstream https://github.com/ORIGINAL_OWNER/leyu-backend.git
+git remote add upstream https://github.com/ORIGINAL_OWNER/hyperdata-backend.git
 ```
 
 ### 2. Install Dependencies
@@ -451,7 +451,7 @@ For security-related contributions:
 
 1. **DO NOT** create public issues for security vulnerabilities
 2. **Follow** our [Security Policy](SECURITY.md)
-3. **Report** vulnerabilities privately to security@leyu-api.com
+3. **Report** vulnerabilities privately to security@mahder-api.com
 4. **Wait** for acknowledgment before proceeding
 5. **Coordinate** with maintainers on disclosure timeline
 
@@ -461,7 +461,7 @@ For security-related contributions:
 
 - **GitHub Issues**: For bugs and feature requests
 - **Discussions**: For questions and general discussion
-- **Email**: For private inquiries at [support@leyu-api.com](mailto:support@leyu-api.com)
+- **Email**: For private inquiries at [support@mahder-api.com](mailto:support@mahder-api.com)
 
 ### Communication Guidelines
 
@@ -515,7 +515,7 @@ If you have questions about contributing, please:
 3. Create a new discussion or issue
 4. Contact maintainers directly
 
-Thank you for contributing to Leyu API! 🚀
+Thank you for contributing to Mahder API! 🚀
 
 ---
 

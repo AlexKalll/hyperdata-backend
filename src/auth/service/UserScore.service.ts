@@ -42,18 +42,30 @@ export class UserScoreService {
   }
   async createScore(
     user_id: string,
-    queryRunner: QueryRunner,
+    queryRunner?: QueryRunner,
   ): Promise<UserScore> {
-    // create a manager for the query
-    const manager = queryRunner.manager;
-    // Check if the user score already exists
-    let userScore = await manager.findOne(UserScore, { where: { user_id } });
+    if (queryRunner) {
+      const manager = queryRunner.manager;
+      let userScore = await manager.findOne(UserScore, { where: { user_id } });
+      if (!userScore) {
+        userScore = manager.create(UserScore, {
+          user_id,
+          score: UserScoreDefaultPoint,
+        });
+        return await manager.save(UserScore, userScore);
+      }
+      return userScore;
+    }
+
+    let userScore = await this.userScoreRepository.findOne({
+      where: { user_id },
+    });
     if (!userScore) {
-      userScore = manager.create(UserScore, {
+      userScore = this.userScoreRepository.create({
         user_id,
         score: UserScoreDefaultPoint,
       });
-      return await manager.save(UserScore, userScore);
+      return await this.userScoreRepository.save(userScore);
     }
     return userScore;
   }

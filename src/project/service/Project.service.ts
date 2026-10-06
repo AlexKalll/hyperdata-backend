@@ -247,13 +247,21 @@ export class ProjectService {
       throw new NotFoundException(`Role not found`);
     }
     if (user) {
-      this.emailService.sendEmail(
-        user.email,
-        'Welcome to Leyu platform',
-        `
+      const userEmail = user.email;
+      this.emailService
+        .sendEmail(
+          userEmail,
+          'Welcome to Mahder platform',
+          `
           Dear ${user.first_name} ${user.middle_name},you are assigned as a Project Manager for the project ${project?.name}
           `,
-      );
+        )
+        .catch((err) => {
+          console.error(
+            `Failed to send email to ${userEmail}:`,
+            err instanceof Error ? err.message : err,
+          );
+        });
     }
     if (!user) {
       const randomPassword = Math.random().toString(36).slice(-8);
@@ -266,14 +274,22 @@ export class ProjectService {
         queryRunner,
       );
       // Send email to user with random password
-      this.emailService.sendEmail(
-        user.email,
-        'Welcome to Leyu platform',
-        `
+      const userEmail = user.email;
+      this.emailService
+        .sendEmail(
+          userEmail,
+          'Welcome to Mahder platform',
+          `
             Dear user, welcome to our platform,you are assigned as a Project Manager for the project ${project?.name}
             Your password is ${randomPassword}
             `,
-      );
+        )
+        .catch((err) => {
+          console.error(
+            `Failed to send email to ${userEmail}:`,
+            err instanceof Error ? err.message : err,
+          );
+        });
     }
     return await this.update(
       projectManager.project_id,

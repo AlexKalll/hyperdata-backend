@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -63,13 +64,15 @@ export class TaskSubmissionService {
     }
     // filter the micro task ids
     const micro_task_ids = datasets.map((d) => d.micro_task_id);
-    const microTasks: MicroTask[] = await this.microTaskService.findAll({
-      where: { id: In(micro_task_ids) },
-      select: { id: true },
-    });
+    const microTasks = await this.assertSubmissionMicroTasks(
+      user_id,
+      task_id,
+      micro_task_ids,
+      is_test,
+    );
     const contributorSubmittedDataSets = await this.dataSetService.findAll({
       where: { micro_task_id: In(micro_task_ids), contributor_id: user_id },
-      select: { id: true },
+      select: { id: true, micro_task_id: true, status: true },
     });
     const task_type = task.taskType.task_type || '';
     if (
@@ -90,7 +93,9 @@ export class TaskSubmissionService {
           );
         }
         return this.dataSetService.validateSubmission(
-          contributorSubmittedDataSets,
+          contributorSubmittedDataSets.filter(
+            (dataSet) => dataSet.micro_task_id === item.micro_task_id,
+          ),
           user_id,
           task.taskRequirement.max_retry_per_task,
         );
@@ -128,7 +133,12 @@ export class TaskSubmissionService {
             queryRunner,
           );
         await this.taskService.updateOrCreateUserToPending(
-          { task_id: task_id, user_id: user_id },
+          {
+            task_id: task_id,
+            user_id: user_id,
+            role: 'Contributor',
+            status: UserTaskStatus.PENDING,
+          },
           queryRunner,
         );
         // await this.userScoreService.updateScore(
@@ -146,7 +156,9 @@ export class TaskSubmissionService {
         if (queryRunner) {
           try {
             await queryRunner.release();
-          } catch (releaseError) {}
+          } catch (_releaseError) {
+            /* best effort */
+          }
         }
       }
     } else {
@@ -212,8 +224,13 @@ export class TaskSubmissionService {
           //     'You have not submitted all the expected micro tasks for this batch',
           //   );
           // }
-          const nextTaskIds = datasets.filter((d) =>
-            contributorMicroTasks.micro_task_ids.includes(d.micro_task_id),
+          // Retries create a new dataset, but do not complete another microtask.
+          const nextTaskIds = datasets.filter(
+            (d) =>
+              contributorMicroTasks.micro_task_ids.includes(d.micro_task_id) &&
+              !contributorSubmittedDataSets.some(
+                (previous) => previous.micro_task_id === d.micro_task_id,
+              ),
           );
           const current_batch = contributorMicroTasks.current_batch;
           // if (current_batch >= contributorMicroTasks.total_micro_tasks) {
@@ -223,10 +240,10 @@ export class TaskSubmissionService {
           // }
           if (current_batch < contributorMicroTasks.total_micro_tasks) {
             const nextBatch =
-              contributorMicroTasks.current_batch + contributorMicroTasks.batch;
+              contributorMicroTasks.current_batch + nextTaskIds.length;
             const totalDatasets = contributorMicroTasks.total_micro_tasks;
             const batch = Math.min(totalDatasets, nextBatch);
-            if (nextTaskIds) {
+            if (nextTaskIds.length > 0) {
               const status =
                 batch >= contributorMicroTasks.total_micro_tasks
                   ? ContributorMicroTasksConstantStatus.COMPLETED
@@ -263,7 +280,9 @@ export class TaskSubmissionService {
         if (queryRunner) {
           try {
             await queryRunner.release();
-          } catch (releaseError) {}
+          } catch (_releaseError) {
+            /* best effort */
+          }
         }
       }
     }
@@ -274,7 +293,7 @@ export class TaskSubmissionService {
     datasets: {
       micro_task_id: string;
       file_path: string;
-      audio_duration:number;
+      audio_duration: number;
     }[],
     task_id: string,
     is_test: boolean = false,
@@ -310,19 +329,27 @@ export class TaskSubmissionService {
     if (!dialect_id || !language_id) {
       throw new BadRequestException('User has no dialect and language');
     }
-    // const microTaskIds = datasets.map(d => d.micro_task_id);
-    // const microTasks = await this.microTaskService.findAll({
-    //   where: { id: In(microTaskIds) },
-    //   select:{id:true}
-    // });
-    // await Promise.all(datasets.map((item)=>{
-    //   const microTask = microTaskMap.get(item.micro_task_id);
-    //     if (!microTask) {
-    //       throw new NotFoundException(`MicroTask with id ${item.micro_task_id} not found`);
-    //     }
-    //     return this.dataSetService.validateSubmission(contributorSubmittedDataSets,user_id,task.taskRequirement.max_retry_per_task)
-    //   }))
-    // Validate all micro_task_id exist
+    await this.assertSubmissionMicroTasks(
+      user_id,
+      task_id,
+      micro_task_ids,
+      is_test,
+    );
+    const contributorSubmittedDataSets = await this.dataSetService.findAll({
+      where: { micro_task_id: In(micro_task_ids), contributor_id: user_id },
+      select: { id: true, micro_task_id: true, status: true },
+    });
+    await Promise.all(
+      datasets.map((item) =>
+        this.dataSetService.validateSubmission(
+          contributorSubmittedDataSets.filter(
+            (dataSet) => dataSet.micro_task_id === item.micro_task_id,
+          ),
+          user_id,
+          task.taskRequirement.max_retry_per_task,
+        ),
+      ),
+    );
     await this.cacheService.clearContributorTaskCache(user_id, task_id);
     if (is_test) {
       const test_microTasks: MicroTask[] =
@@ -340,13 +367,13 @@ export class TaskSubmissionService {
           dialect_id: string;
           language_id: string;
           is_test: boolean;
-          audio_duration:number
+          audio_duration: number;
         }[] = [];
         datasets.forEach((d) => {
           if (test_microTasks.find((m) => m.id == d.micro_task_id)) {
             test_data_set.push({
               ...d,
-              audio_duration:d.audio_duration,
+              audio_duration: d.audio_duration,
               dialect_id: user.dialect_id,
               language_id: user.language_id,
               is_test: true,
@@ -398,14 +425,14 @@ export class TaskSubmissionService {
           dialect_id: string;
           language_id: string;
           is_test: boolean;
-          audio_duration:number
+          audio_duration: number;
         }[] = datasets.map((d) => ({
           micro_task_id: d.micro_task_id,
           file_path: d.file_path,
           dialect_id,
           language_id,
           is_test: false,
-          audio_duration:d.audio_duration
+          audio_duration: d.audio_duration,
         }));
         await this.userTaskService.findOneOrCreate(
           { where: { task_id: task_id, user_id: user_id } },
@@ -431,8 +458,13 @@ export class TaskSubmissionService {
             where: { contributor_id: user_id, task_id: task_id },
           });
         if (contributorMicroTasks) {
-          const nextTaskIds = datasets.filter((d) =>
-            contributorMicroTasks.micro_task_ids.includes(d.micro_task_id),
+          // Retries create a new dataset, but do not complete another microtask.
+          const nextTaskIds = datasets.filter(
+            (d) =>
+              contributorMicroTasks.micro_task_ids.includes(d.micro_task_id) &&
+              !contributorSubmittedDataSets.some(
+                (previous) => previous.micro_task_id === d.micro_task_id,
+              ),
           );
           const current_batch = contributorMicroTasks.current_batch;
           // if (current_batch >= contributorMicroTasks.total_micro_tasks) {
@@ -443,10 +475,10 @@ export class TaskSubmissionService {
           // }
           if (current_batch < contributorMicroTasks.total_micro_tasks) {
             const nextBatch =
-              contributorMicroTasks.current_batch + contributorMicroTasks.batch;
+              contributorMicroTasks.current_batch + nextTaskIds.length;
             const totalDatasets = contributorMicroTasks.total_micro_tasks;
             const batch = Math.min(totalDatasets, nextBatch);
-            if (nextTaskIds) {
+            if (nextTaskIds.length > 0) {
               const status =
                 batch >= contributorMicroTasks.total_micro_tasks
                   ? ContributorMicroTasksConstantStatus.COMPLETED
@@ -483,9 +515,56 @@ export class TaskSubmissionService {
         if (queryRunner) {
           try {
             await queryRunner.release();
-          } catch (releaseError) {}
+          } catch (_releaseError) {
+            /* best effort */
+          }
         }
       }
     }
+  }
+
+  private async assertSubmissionMicroTasks(
+    userId: string,
+    taskId: string,
+    microTaskIds: string[],
+    isTest: boolean,
+  ): Promise<MicroTask[]> {
+    const uniqueIds = [...new Set(microTaskIds)];
+    if (uniqueIds.length !== microTaskIds.length) {
+      throw new BadRequestException(
+        'A micro task may only be submitted once per request',
+      );
+    }
+    const microTasks = await this.microTaskService.findAll({
+      where: { id: In(uniqueIds), task_id: taskId },
+      select: { id: true, is_test: true },
+    });
+    if (microTasks.length !== uniqueIds.length) {
+      throw new NotFoundException(
+        'One or more micro tasks do not belong to this task',
+      );
+    }
+    if (microTasks.some((microTask) => microTask.is_test !== isTest)) {
+      throw new BadRequestException(
+        'Micro task does not match the submission type',
+      );
+    }
+    if (isTest) {
+      return microTasks;
+    }
+    const assignment = await this.contributorMicroTaskService.findOne({
+      where: { contributor_id: userId, task_id: taskId },
+    });
+    if (!assignment || !assignment.micro_task_ids) {
+      throw new ForbiddenException(
+        'No micro tasks are assigned to this contributor',
+      );
+    }
+    if (!uniqueIds.every((id) => assignment.micro_task_ids.includes(id))) {
+      throw new ForbiddenException(
+        'Micro task is not assigned to this contributor',
+      );
+    }
+    return microTasks;
   }
 }

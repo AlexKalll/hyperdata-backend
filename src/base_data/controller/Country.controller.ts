@@ -22,6 +22,7 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger';
 import { CountryService } from '../service/Country.service';
+import { ReferenceDataAdminGuard } from '../guard/ReferenceDataAdmin.guard';
 import {
   CreateCountryDto,
   SearchCountryDto,
@@ -37,6 +38,7 @@ import { PaginatedResult } from 'src/utils/paginate.util';
 @ApiTags('Country')
 @ApiExtraModels(SearchCountryDto, PaginationDto)
 @Controller('/setting/country')
+@UseGuards(JwtAuthGuard, RolesGuard, ReferenceDataAdminGuard)
 export class CountryController {
   constructor(private readonly countryService: CountryService) {}
 

@@ -50,6 +50,7 @@ import {
 import { Project } from '../entities/Project.entity';
 import { PaginatedResult } from 'src/utils/paginate.util';
 import { ProjectSanitize, UserTaskSanitize } from '../sanitize';
+import { ForbiddenException } from '@nestjs/common';
 import { UserSanitize } from 'src/auth/sanitize';
 
 @Controller('/project-mgmt/project')
@@ -274,6 +275,7 @@ export class ProjectController {
     @Param('project_id') project_id: string,
     @Request() req,
   ): Promise<UserSanitize> {
+    await this.assertProjectManager(project_id, req);
     const user = await this.projectService.getProjectManager(project_id);
     if (!user) {
       throw new NotFoundException(`Project manager  not found`);
@@ -282,7 +284,7 @@ export class ProjectController {
   }
 
   @Post('/assign-manager')
-  @Roles(Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.SUPER_ADMIN)
   async assignProjectManager(
     @Body()
     projectManager: AssignProjectManagerDto,
@@ -334,7 +336,9 @@ export class ProjectController {
   async findProjectMembers(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Query() queryOption: FindTaskMembersDto,
+    @Request() req,
   ): Promise<PaginatedResult<UserTaskSanitize>> {
+    await this.assertProjectManager(id, req);
     const page = queryOption.page || 1;
     const limit = queryOption.limit || 10;
     delete queryOption.page;
@@ -355,6 +359,7 @@ export class ProjectController {
   @UsePipes(new ZodValidationPipe())
   @ApiResponse({ type: ProjectSanitize })
   async findOne(@Param('id') id: string, @Request() req) {
+    await this.assertProjectManager(id, req);
     const project = await this.projectService.findOne({
       where: { id },
       relations: { manager: true },
@@ -388,6 +393,7 @@ export class ProjectController {
     @Body() projectData: UpdateProjectDto,
     @Request() req,
   ) {
+    await this.assertProjectManager(id, req);
     let payload: any = { ...projectData };
     if (file) {
       payload = { ...payload, cover_image_url: file.key };
@@ -415,7 +421,21 @@ export class ProjectController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
   async archiveToggle(@Param('id') id: string, @Request() req) {
+    await this.assertProjectManager(id, req);
     return this.projectService.archiveToggle(id);
+  }
+
+  private async assertProjectManager(
+    projectId: string,
+    req: any,
+  ): Promise<void> {
+    if (req.user.role.name !== Role.PROJECT_MANAGER) return;
+    const project = await this.projectService.findOne({
+      where: { id: projectId, manager_id: req.user.id },
+    });
+    if (!project) {
+      throw new ForbiddenException('You do not manage this project');
+    }
   }
 
   @Delete(':id')

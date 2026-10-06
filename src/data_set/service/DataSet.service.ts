@@ -389,8 +389,13 @@ export class DataSetService {
    * @param id The id of the data set to remove.
    * @returns A promise resolving to void when the removal is successful.
    */
-  async remove(id: string): Promise<void> {
-    await this.dataSetRepository.delete(id);
+  async remove(id: string, contributorId?: string): Promise<void> {
+    const result = await this.dataSetRepository.delete(
+      contributorId ? { id, contributor_id: contributorId } : { id },
+    );
+    if (!result.affected) {
+      throw new NotFoundException('Dataset not found');
+    }
     return;
   }
   // async generateCode(): Promise<string> {
@@ -448,6 +453,12 @@ export class DataSetService {
     if (dataSet.status !== DataSetStatus.PENDING) {
       throw new BadRequestException('data set already rejected');
     }
+    await this.reviewerTaskService.assertAssignedDataSet(
+      reviewer_id,
+      dataSet.microTask.task.id,
+      id,
+      queryRunner,
+    );
 
     await manager.update(DataSet, dataSet.id, {
       status: DataSetStatus.REJECTED,
@@ -540,6 +551,15 @@ export class DataSetService {
     if (dataSet.status == DataSetStatus.APPROVED) {
       throw new BadRequestException('Data set already approved');
     }
+    if (dataSet.status !== DataSetStatus.PENDING) {
+      throw new BadRequestException('Data set is not pending review');
+    }
+    await this.reviewerTaskService.assertAssignedDataSet(
+      reviewer_id,
+      dataSet.microTask.task.id,
+      id,
+      queryRunner,
+    );
     // await this.reviewerTaskService.checkAndRemoveDataSetFromReviewer(
     //   reviewer_id,
     //   dataSet.microTask.task.id,

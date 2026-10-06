@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  ServiceUnavailableException,
+  UseGuards,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { WalletService } from '../service/Wallet.service';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
@@ -20,6 +28,7 @@ export class WalletController {
     // Inject necessary services here
     private readonly walletService: WalletService,
     private readonly dataSource: DataSource,
+    private readonly configService: ConfigService,
   ) {}
 
   @Post('withdraw-money')
@@ -28,13 +37,18 @@ export class WalletController {
     @Body() withDrawData: WithdrawMoneyDto,
     @Request() request,
   ) {
+    if (this.configService.get<string>('ENABLE_WITHDRAWALS') !== 'true') {
+      throw new ServiceUnavailableException(
+        'Withdrawals are temporarily unavailable',
+      );
+    }
     // Logic for withdrawing money from the wallet
     const user = request.user as User;
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
-      const result = await this.walletService.withdrawMoney(
+      const reservation = await this.walletService.reserveWithdrawal(
         user.id,
         withDrawData.amount,
         withDrawData.phoneNumber,
@@ -42,11 +56,12 @@ export class WalletController {
         queryRunner,
       );
       await queryRunner.commitTransaction();
-      return result;
+      return await this.walletService.submitWithdrawal(reservation.id);
     } catch (error) {
-      if (queryRunner && !queryRunner.isTransactionActive) {
+      if (queryRunner && queryRunner.isTransactionActive) {
         await queryRunner.rollbackTransaction();
       }
+      throw error;
     } finally {
       if (queryRunner && !queryRunner.isReleased) {
         await queryRunner.release();

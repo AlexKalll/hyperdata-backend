@@ -21,8 +21,8 @@ export class RolesGuard implements CanActivate {
     }
 
     const { user } = context.switchToHttp().getRequest();
-    const role: RoleEntity = user.role as RoleEntity;
-    if (!user || !requiredRoles.includes(role.name)) {
+    const role: RoleEntity | undefined = user?.role as RoleEntity | undefined;
+    if (!user || !role || !requiredRoles.includes(role.name)) {
       throw new ForbiddenException(
         'You do not have permission to access this resource',
       );

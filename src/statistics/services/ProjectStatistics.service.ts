@@ -39,7 +39,15 @@ export class ProjectStatisticsService {
       });
     }
     if (!project) {
-      throw new NotFoundException('Project not found');
+      return {
+        project: null,
+        total_data_sets: 0,
+        total_micro_tasks: 0,
+        total_tasks: 0,
+        total_contributors: 0,
+        total_facilitators: 0,
+        total_reviewers: 0,
+      };
     }
     // datasets
     const tasks: Task[] = await this.taskService.findAll({
@@ -144,7 +152,7 @@ export class ProjectStatisticsService {
       });
     }
     if (!project) {
-      throw new NotFoundException('Project not found');
+      return [];
     }
     const tasks = project.tasks.map((t) => t.id);
     const microTasks = await this.microTaskService.findAll({
@@ -181,7 +189,7 @@ export class ProjectStatisticsService {
       });
     }
     if (!project) {
-      throw new NotFoundException('Project not found');
+      return [];
     }
     const tasks = project.tasks.map((t) => t.id);
     const microTasks = await this.microTaskService.findAll({

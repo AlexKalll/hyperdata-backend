@@ -260,11 +260,7 @@ export class TaskMicroTasksResponse {
     };
     contributorMicroTask: ContributorMicroTaskRto[];
     has_passed:
-      | 'PENDING'
-      | 'UNDER_REVIEW'
-      | 'APPROVED'
-      | 'REJECTED'
-      | 'FLAGGED';
+      'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'FLAGGED';
     is_test: boolean;
     taskInstruction: TaskInstructionRto | undefined;
     minimum_seconds: number;

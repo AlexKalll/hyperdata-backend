@@ -21,6 +21,7 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger';
 import { RejectionTypeService } from '../service/RejectionType.service';
+import { ReferenceDataAdminGuard } from '../guard/ReferenceDataAdmin.guard';
 import {
   CreateRejectionTypeDto,
   UpdateRejectionTypeDto,
@@ -32,6 +33,7 @@ import { RolesGuard } from 'src/auth/guard/role.guard';
 import { PaginatedResult } from 'src/utils/paginate.util';
 import { RejectionTypeSanitized } from '../sanitize';
 @Controller('/setting/rejection-type')
+@UseGuards(JwtAuthGuard, RolesGuard, ReferenceDataAdminGuard)
 @ApiTags('Rejection Type')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)

@@ -1,32 +1,33 @@
 {
-  "name": "leyu-api",
+  "name": "mahder-api",
   "version": "0.0.1",
   "description": "",
   "author": "",
   "private": true,
-  "license": "UNLICENSED",
+  "packageManager": "npm@11.5.2",
+  "license": "Apache-2.0",
   "scripts": {
     "build": "nest build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-
     "migration:revert": "npm run typeorm -- migration:revert -d src/database/data-source.ts",
     "migration:show": "npm run typeorm -- migration:show -d src/database/data-source.ts",
     "migration:create": "npm run typeorm -- migration:create src/database/migrations/migration",
     "migration:run:prod": "node ./node_modules/typeorm/cli.js migration:run -d dist/database/data-source.js",
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
-
     "migration:generate": "npm run typeorm -- migration:generate -d src/database/data-source.ts src/database/migrations/migration",
+    "bootstrap-admin": "node dist/database/bootstrap-admin.js",
     "migration:run": "npm run typeorm -- migration:run -d src/database/data-source.ts",
-
-   
-    "seed": "ts-node ./node_modules/typeorm-extension/dist/cli/index.js seed -d src/database/data-source.ts",
+    "seed": "npx typeorm-extension seed:run -- -d src/database/data-source.ts",
+    "seed:prod": "node ./node_modules/typeorm-extension/bin/cli.cjs seed:run -- -d dist/database/data-source.js",
     "seed:run": "npx typeorm-extension seed:run -- -d src/database/data-source.ts -s src/database/seeds/RejectionType",
     "seed:create": "npx typeorm-extension seed:create   --name src/database/seeds/RejectionType",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
+    "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
@@ -53,7 +54,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.13",
     "@nestjs/schedule": "^6.0.0",
-    "@nestjs/swagger": "^11.0.7",
+    "@nestjs/swagger": "11.2.6",
     "@nestjs/terminus": "^11.0.0",
     "@nestjs/typeorm": "^11.0.0",
     "@types/multer": "^1.4.12",
@@ -72,7 +73,7 @@
     "ioredis": "^5.6.1",
     "joi": "^18.0.2",
     "jsonwebtoken": "^9.0.3",
-    "leyu-api": "file:",
+    "mahder-api": "file:",
     "lodash": "^4.17.21",
     "multer": "^1.4.5-lts.2",
     "multer-s3": "^3.0.1",
@@ -129,6 +130,9 @@
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/$1"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"

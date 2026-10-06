@@ -4,6 +4,9 @@ import { HttpException } from '@nestjs/common';
 export class CustomValidationPipe extends ValidationPipe {
   constructor() {
     super({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
       exceptionFactory: (errors: ValidationError[]) => {
         // Extract all error messages and join them into a single string
         const messages = errors

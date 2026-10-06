@@ -29,7 +29,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       where: { id: user.id },
       relations: { role: true },
     });
-    if (!fullUser) {
+    if (!fullUser || !fullUser.is_active) {
       throw new UnauthorizedException('User not found');
     }
 

@@ -63,7 +63,7 @@ export class DataSetController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER, Role.CONTRIBUTOR)
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
   @UsePipes(new ZodValidationPipe())
   @ApiResponse({
     status: 200,
@@ -108,7 +108,7 @@ export class DataSetController {
 
   @Get('all')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.CONTRIBUTOR)
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
   @UsePipes(new ZodValidationPipe())
   @ApiResponse({
     status: 200,
@@ -302,7 +302,7 @@ export class DataSetController {
   @Get('/facilitator/contributor/submissions/:task_id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.FACILITATOR)
-  @ApiQuery({ name: 'contributor_id', required: false, type: String })
+  @ApiQuery({ name: 'contributor_id', required: true, type: String })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   async getContributorDataSets(
@@ -330,13 +330,7 @@ export class DataSetController {
 
   @Put('/approve/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(
-    Role.ADMIN,
-    Role.SUPER_ADMIN,
-    Role.PROJECT_MANAGER,
-    Role.REVIEWER,
-    Role.FACILITATOR,
-  )
+  @Roles(Role.REVIEWER)
   async approve(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: ApproveDataSetDto,
@@ -438,7 +432,7 @@ export class DataSetController {
 
   @Put('/reject/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.PROJECT_MANAGER, Role.REVIEWER)
+  @Roles(Role.REVIEWER)
   async reject(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() rejectionReason: CreateRejectionReasonDto,
@@ -516,6 +510,8 @@ export class DataSetController {
   @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.CONTRIBUTOR)
   @UsePipes(new ZodValidationPipe())
   async remove(@Param('id') id: string, @Request() req) {
-    return this.dataSetService.remove(id);
+    const contributorId =
+      req.user.role.name === Role.CONTRIBUTOR ? req.user.id : undefined;
+    return this.dataSetService.remove(id, contributorId);
   }
 }

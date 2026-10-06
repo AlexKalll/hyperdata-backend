@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
 export class CreateTaskPaymentDto {
   @IsString()
@@ -6,9 +12,11 @@ export class CreateTaskPaymentDto {
   task_id: string;
 
   @IsNumber()
+  @Min(0)
   contributor_credit_per_microtask: number;
 
   @IsNumber()
+  @Min(0)
   reviewer_credit_per_microtask: number;
 
   @IsOptional()

@@ -20,6 +20,7 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger';
 import { LanguageService } from '../service/Language.service';
+import { ReferenceDataAdminGuard } from '../guard/ReferenceDataAdmin.guard';
 import { CreateLanguageDto, UpdateLanguageDto } from '../dto/Language.dto';
 import { PaginationDto } from 'src/common/dto/Pagination.dto';
 import { ZodValidationPipe } from 'nestjs-zod';
@@ -28,6 +29,7 @@ import { RolesGuard } from 'src/auth/guard/role.guard';
 import { LanguageSanitized } from '../sanitize';
 import { PaginatedResult } from 'src/utils/paginate.util';
 @Controller('/setting/language')
+@UseGuards(JwtAuthGuard, RolesGuard, ReferenceDataAdminGuard)
 @ApiTags('Language')
 export class LanguageController {
   constructor(private readonly languageService: LanguageService) {}

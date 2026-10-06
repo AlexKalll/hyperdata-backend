@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 export type AfroResponse = {
   acknowledge: string;
   response: {
@@ -32,9 +32,10 @@ export class SmsService {
       });
       Logger.log('[**] SMS SENT', res.data);
       return { error: '', afro: res.data };
-    } catch (error: AxiosError | any) {
-      Logger.warn('Error In Sending SMS', error.message);
-      return { error: error?.message?.toString(), afro: null };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      Logger.warn('Error In Sending SMS', message);
+      return { error: message, afro: null };
     }
   }
 }

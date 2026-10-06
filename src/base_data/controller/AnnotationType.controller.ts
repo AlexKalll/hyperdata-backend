@@ -30,9 +30,11 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guard/role.guard';
 import { AnnotationTypeService } from '../service/AnnotationType.service';
+import { ReferenceDataAdminGuard } from '../guard/ReferenceDataAdmin.guard';
 import { AnnotationTypeSanitized } from '../sanitize';
 import { PaginatedResult } from 'src/utils/paginate.util';
 @Controller('/setting/annotation-type')
+@UseGuards(JwtAuthGuard, RolesGuard, ReferenceDataAdminGuard)
 @ApiTags('DataSet Annotation Type')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)

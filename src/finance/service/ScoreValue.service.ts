@@ -25,7 +25,7 @@ export class ScoreValueService {
     if (score) {
       return score;
     }
-    const scoree = await this.scoreValueRepository.create(scoreValue);
+    const scoree = this.scoreValueRepository.create(scoreValue);
     return await this.scoreValueRepository.save(scoree);
   }
 

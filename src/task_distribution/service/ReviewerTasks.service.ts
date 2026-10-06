@@ -1,6 +1,6 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { ReviewerTasks } from '../enitities/ReviewerTasks.entity';
-import { LessThan, MoreThan, QueryRunner, Repository } from 'typeorm';
+import { In, LessThan, MoreThan, QueryRunner, Repository } from 'typeorm';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Task } from 'src/project/entities/Task.entity';
@@ -22,7 +22,11 @@ export class ReviewerTaskService {
   ): Promise<string[]> {
     const tasks: ReviewerTasks | null =
       await this.reviewerTaskRepository.findOne({
-        where: { reviewer_id: reviewerId, task_id: taskId },
+        where: {
+          reviewer_id: reviewerId,
+          task_id: taskId,
+          expire_date: MoreThan(new Date()),
+        },
       });
     if (tasks) {
       return tasks.data_set_ids;
@@ -59,20 +63,13 @@ export class ReviewerTaskService {
     dataSetId: string,
     queryRunner: QueryRunner,
   ): Promise<void> {
-    const reviewerTask = await this.reviewerTaskRepository.findOne({
-      where: {
-        reviewer_id: reviewerId,
-        task_id: taskId,
-      },
-    });
-    if (!reviewerTask) {
-      throw new UnauthorizedException('Reviewer is not assigned to this task');
-    }
-    const reviewerDataSetIds = reviewerTask.data_set_ids;
-    if (!reviewerDataSetIds.includes(dataSetId)) {
-      throw new UnauthorizedException('Reviewer is not assigned to this task');
-    }
     const manager = queryRunner.manager;
+    const reviewerTask = await this.assertAssignedDataSet(
+      reviewerId,
+      taskId,
+      dataSetId,
+      queryRunner,
+    );
     const leftDataSets = reviewerTask.data_set_ids.filter(
       (d) => d !== dataSetId,
     );
@@ -82,6 +79,28 @@ export class ReviewerTaskService {
       { data_set_ids: leftDataSets },
     );
     return;
+  }
+
+  async assertAssignedDataSet(
+    reviewerId: string,
+    taskId: string,
+    dataSetId: string,
+    queryRunner: QueryRunner,
+  ): Promise<ReviewerTasks> {
+    const reviewerTask = await queryRunner.manager
+      .createQueryBuilder(ReviewerTasks, 'reviewer_task')
+      .setLock('pessimistic_write')
+      .where('reviewer_task.reviewer_id = :reviewerId', { reviewerId })
+      .andWhere('reviewer_task.task_id = :taskId', { taskId })
+      .andWhere(':dataSetId = ANY(reviewer_task.data_set_ids)', { dataSetId })
+      .andWhere('reviewer_task.expire_date > NOW()')
+      .getOne();
+    if (!reviewerTask) {
+      throw new UnauthorizedException(
+        'Reviewer is not assigned to this dataset',
+      );
+    }
+    return reviewerTask;
   }
 
   /**
@@ -130,8 +149,13 @@ export class ReviewerTaskService {
         expire_date: MoreThan(new Date()),
       },
     });
-    let reviewerAssignedDataSets: ReviewerTasks[] = [];
-    reviewerAssignedDataSets = [...allReviewerAssignedDataSets];
+    const eligibleReviewerIds = new Set(reviewerIds);
+    const invalidReviewerAssignments = allReviewerAssignedDataSets.filter(
+      (assignment) => !eligibleReviewerIds.has(assignment.reviewer_id),
+    );
+    let reviewerAssignedDataSets = allReviewerAssignedDataSets.filter(
+      (assignment) => eligibleReviewerIds.has(assignment.reviewer_id),
+    );
     for (let index = 0; index < reviewerIds.length; index++) {
       if (
         !reviewerAssignedDataSets.find(
@@ -151,7 +175,9 @@ export class ReviewerTaskService {
       }
     }
 
-    const allAssignedDataSets = allReviewerAssignedDataSets
+    // Ignore assignments owned by users who are no longer active reviewers for
+    // this task. Their data sets must become eligible for reassignment.
+    const allAssignedDataSets = reviewerAssignedDataSets
       .map((r) => r.data_set_ids)
       .flat();
     const unAssignedDataSets = allPendingDataSetIds.filter(
@@ -181,24 +207,30 @@ export class ReviewerTaskService {
         start + canBeAssigned,
       );
       const newDataSetIds = unAssignedDataSets.slice(start, maxCutIndex);
-      start += maxCutIndex;
+      start = maxCutIndex;
       const dataSetIds = [
         ...new Set([...reviewerAssignedDataSet.data_set_ids, ...newDataSetIds]),
       ];
       reviewerAssignedDataSet.data_set_ids = dataSetIds;
 
-      const message = `You have been assigned ${newDataSetIds.length} submissions to review  on task ${task.name}. Please login to your account to start working on it.`;
+      if (newDataSetIds.length > 0) {
+        const message = `You have been assigned ${newDataSetIds.length} submissions to review on task ${task.name}. Please login to your account to start working on it.`;
+        notifications.push({
+          user_id: reviewerAssignedDataSet.reviewer_id,
+          message,
+        });
+      }
       if (start >= unAssignedDataSets.length) break;
-
-      notifications.push({
-        user_id: reviewerAssignedDataSet.reviewer_id,
-        message: message,
-      });
     }
     reviewerAssignedDataSets = reviewerAssignedDataSets.filter(
       (rT) => rT.data_set_ids.length > 0,
     );
     await this.reviewerTaskRepository.save(reviewerAssignedDataSets);
+    if (invalidReviewerAssignments.length > 0) {
+      await this.reviewerTaskRepository.delete({
+        id: In(invalidReviewerAssignments.map((assignment) => assignment.id)),
+      });
+    }
     await Promise.all(
       notifications.map(async (notification) => {
         await this.notificationService.create({

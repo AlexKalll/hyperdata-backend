@@ -1,342 +1,524 @@
-# Leyu API
+# Mahder API
 
-A comprehensive data collection and task management platform built with NestJS, designed for managing crowdsourced data collection projects with multi-language support and role-based access control.
+Mahder API is a NestJS backend for managing crowdsourced data collection, annotation, review, task distribution, contributor payments, notifications, and operational reporting.
 
-## Overview
+The system is designed around projects, tasks, micro-tasks, contributors, reviewers, facilitators, project managers, and administrators. It includes the infrastructure needed to run the platform locally or in containers: PostgreSQL, Redis, RabbitMQ, BullMQ, MinIO/S3-compatible storage, email, SMS, push notifications, and Santim Pay integration.
 
-Leyu API is a robust backend system that facilitates collaborative data collection projects. It enables organizations to create projects, define tasks, and manage contributors, reviewers, and facilitators in a structured workflow. The platform supports multiple languages and dialects, making it ideal for linguistic data collection and annotation projects.
+## Features
 
-## Key Features
+### Authentication, Users, and Access Control
 
-### 🎯 Project & Task Management
-- **Project Creation**: Create and manage data collection projects with detailed metadata
-- **Task Distribution**: Automated task assignment to contributors based on skills and availability
-- **Micro-task System**: Break down large tasks into manageable micro-tasks for efficient processing
-- **Progress Tracking**: Real-time monitoring of project completion status
+- JWT login, mobile login, refresh tokens, password reset, OTP verification, and role lookup.
+- User registration, admin-created users, profile updates, password changes, verification, activation toggles, and current-user profile retrieval.
+- Role-focused user listing for project managers, reviewers, contributors, and facilitators.
+- Role and permission guards for protected routes.
+- User scores and score logs for performance/reputation workflows.
+- User device token support for push notifications.
 
-### 👥 User Management & Roles
-- **Multi-role Support**: Contributors, Reviewers, Facilitators, and Project Managers
-- **User Scoring System**: Performance-based scoring and reputation management
-- **Geographic Organization**: Users organized by regions, zones, and administrative areas
-- **Skill-based Assignment**: Task distribution based on user expertise and language proficiency
+### Project Management
 
-### 🌍 Multi-language Support
-- **Language Management**: Support for multiple languages and dialects
-- **Localized Content**: Language-specific task instructions and content
-- **Regional Customization**: Adapt content based on geographic regions
+- Project CRUD with archive/unarchive support.
+- Project manager assignment and project-member retrieval.
+- Manager-specific project views, including paginated and complete lists.
+- Project invitation links for projects and tasks.
+- Invitation acceptance flow.
+- Project-level statistics and dataset progress reporting.
 
-### 📊 Data Collection & Quality Control
-- **Dataset Management**: Structured data collection with validation and quality checks
-- **Review Workflow**: Multi-stage review process with approval/rejection mechanisms
-- **Flag System**: Quality control through flagging and review processes
-- **Audio Support**: Handle audio data with duration tracking and file management
+### Task Management
 
-### 💰 Financial Management
-- **Payment System**: Integrated wallet and transaction management
-- **Contributor Compensation**: Automated payment processing for completed tasks
-- **Financial Tracking**: Comprehensive transaction history and reporting
+- Task CRUD with archive/unarchive and close/reopen support.
+- Task type CRUD.
+- Task requirements, payment configuration, and instruction management.
+- Assignment of facilitators, reviewers, and contributors to tasks.
+- Contributor assignment to facilitators.
+- Automatic contributor assignment to facilitators.
+- Task member listing, activation toggles, removal, and member flagging.
+- Import contributors from another task.
+- Export task contributors.
+- Discover unassigned users and users matching task requirements.
+- Role-specific task views for contributors, reviewers, and facilitators.
 
-### 📱 Communication & Notifications
-- **SMS Integration**: Multi-provider SMS support (Geez SMS, Afro Message)
-- **Email Notifications**: Automated email communications
-- **Activity Logging**: Comprehensive audit trail of user activities
+### Micro-task and Dataset Workflows
+
+- Micro-task CRUD.
+- CSV import and export for micro-tasks.
+- Import micro-tasks from another task.
+- Audio and bulk-audio micro-task upload.
+- Contributor micro-task views and submission history.
+- Dataset CRUD and dataset review flows.
+- Dataset approval and rejection with rejection reasons.
+- Contributor, reviewer, task, micro-task, and facilitator-specific dataset views.
+- Dataset assignment and submission tracking.
+- Dataset action publishing through RabbitMQ.
+- File upload processing through background queues.
+
+### Task Distribution
+
+- Contributor task assignment and "my tasks" retrieval.
+- Reviewer task assignment.
+- Contribution submission for text/data tasks.
+- Audio contribution submission.
+- Contributor micro-task submission retrieval.
+- Task redistribution support.
+- Task distribution monitoring by task, contributor, micro-task, reviewer assignment, and reviewer progress.
+- Micro-task statistics and reviewer task progress tracking.
+
+### Review and Quality Control
+
+- Review workflow for assigned datasets and reviewer task queues.
+- Rejection reason management.
+- Base rejection type management.
+- Flag type management.
+- Member flagging on tasks.
+- Dataset and micro-task status constants for workflow control.
+- Activity logs for traceability and audit history.
+
+### Base Data and Settings
+
+- Country, region, and zone management.
+- Language and dialect management.
+- Organization and sector management.
+- Annotation type and dataset annotation management.
+- Flag type and rejection type management.
+- Paginated and complete list endpoints for settings data where supported.
+- Seed data for roles, countries, regions, and rejection types.
+
+### Finance and Payments
+
+- User wallet balance retrieval.
+- Withdrawal requests.
+- Transaction listing.
+- Score value retrieval and update.
+- Santim Pay configuration support.
+- Task payment configuration and contributor compensation workflows.
+
+### Communication and Content
+
+- Contact-us CRUD.
+- Blog CRUD.
+- SMS service integration.
+- Email service integration through Nodemailer/Gmail.
+- Notification retrieval for the current user.
+- New-notification count endpoint.
+- Firebase Admin SDK dependency for push-notification support.
+- RabbitMQ publisher service for event-style notifications.
+
+### Statistics and Reporting
+
+- Super-admin dashboard statistics.
+- Super-admin dataset contribution statistics.
+- Dataset language statistics.
+- Project statistics.
+- Task statistics.
+- Project and task dataset statistics.
+- Reviewer statistics.
+- Task distribution monitoring dashboards.
+
+### Files, Media, and Storage
+
+- MinIO/S3-compatible object storage integration.
+- Public image/file retrieval endpoint.
+- Audio metadata support for uploaded audio files.
+- File upload queue using BullMQ and Redis.
+- Background file upload processor.
+- Cache management endpoint for clearing cache state.
+
+### Platform and Operations
+
+- PostgreSQL database with TypeORM entities, migrations, and seeds.
+- Redis for caching and BullMQ queues.
+- RabbitMQ for notification and dataset event queues.
+- Bull Board queue dashboard at `/admin/queues`.
+- Swagger/OpenAPI documentation.
+- Global request validation.
+- Global response interceptor.
+- Global HTTP exception filter.
+- Request logging middleware.
+- Config validation with Joi.
+- CORS configuration with production safety checks.
+- Health check endpoint.
+- Docker and Docker Compose support.
+- Unit and e2e test setup with Jest.
 
 ## Architecture
 
 ### Core Modules
 
-- **Auth Module**: JWT-based authentication, user management, and role-based access control
-- **Project Module**: Project lifecycle management and task orchestration
-- **Data Set Module**: Data collection, validation, and quality assurance
-- **Task Distribution Module**: Intelligent task assignment and workload balancing
-- **Finance Module**: Payment processing, wallet management, and transaction tracking
-- **Communication Module**: Multi-channel messaging and notification system
-- **Base Data Module**: Master data management for languages, dialects, and geographic regions
-- **Statistics Module**: Analytics and reporting capabilities
-- **Cache Module**: Redis-based caching and background job processing
+- `AuthModule` - authentication, users, roles, permissions, scores, verification codes, and device tokens.
+- `ProjectModule` - projects, tasks, task types, task instructions, task payments, requirements, invitation links, and facilitator/contributor assignments.
+- `DataSetModule` - datasets, micro-tasks, rejection reasons, flag reasons, imports, exports, and audio upload flows.
+- `TaskDistributionModule` - contributor assignments, reviewer assignments, contribution submission, redistribution, reviewer progress, and monitoring.
+- `FinanceModule` - wallets, transactions, score values, and payment gateway services.
+- `CommunicationModule` - blog and contact-us features.
+- `CommonModule` - files, audio helpers, notifications, activity logs, RabbitMQ publishing, pagination, interceptors, and filters.
+- `BaseDataModule` - countries, regions, zones, languages, dialects, organizations, sectors, annotation types, flag types, and rejection types.
+- `StatisticsModule` - super-admin, project, and reviewer reports.
+- `CacheModule` - Redis-backed cache utilities and cache clearing.
+- `BackgroundTaskModule` - background consumers and file upload processing.
+- `HealthModule` - service health checks.
+- `SmsModule` and `EmailModule` - messaging integrations.
 
 ### Technology Stack
 
-- **Framework**: NestJS (Node.js)
-- **Database**: PostgreSQL with TypeORM
-- **Cache & Queue**: Redis with BullMQ
-- **Authentication**: JWT with Passport
-- **File Storage**: MinIO (S3-compatible)
-- **Email**: Nodemailer with Gmail integration
-- **SMS**: Multiple providers (Geez SMS, Afro Message)
-- **Push Notifications**: Firebase Admin SDK
-- **Payment**: Santim Pay integration
-- **API Documentation**: Swagger/OpenAPI
-- **Validation**: Zod schemas with class-validator
+- NestJS 11 and TypeScript
+- PostgreSQL with TypeORM
+- Redis with BullMQ
+- RabbitMQ
+- Bull Board
+- JWT and Passport
+- CASL/nest-casl dependencies for authorization workflows
+- MinIO/S3-compatible storage with AWS SDK clients
+- Nodemailer and Nest mailer
+- Firebase Admin SDK
+- Santim Pay integration
+- Swagger/OpenAPI
+- Joi, class-validator, and Zod/nestjs-zod
+- Jest and Supertest
+- Docker and Docker Compose
 
 ## Prerequisites
 
-- Node.js (v20 or higher)
-- PostgreSQL (v12 or higher)
-- Redis (v7 or higher)
-- MinIO or S3-compatible storage
+- Node.js 20 or newer
+- npm
+- PostgreSQL 12 or newer, or Docker Compose
+- Redis 7 or newer, or Docker Compose
+- RabbitMQ, or Docker Compose
+- MinIO or another S3-compatible service for file upload/storage flows
 
 ## Installation
 
-1. **Clone the repository**
+1. Clone the repository.
+
    ```bash
    git clone <repository-url>
-   cd leyu-backend
+   cd mahder-backend
    ```
 
-2. **Install dependencies**
+2. Install dependencies.
+
    ```bash
    npm install
    ```
 
-3. **Environment Configuration**
+3. Create an environment file.
+
    ```bash
    cp .env.example .env
    ```
-   
-   Configure the following environment variables:
-   ```env
-   # Database
-   DATABASE_URL="postgresql://username:password@localhost:5432/leyu_db"
-   DATABASE_SCHEMA="public"
-   
-   # JWT Configuration
-   JWT_SECRET="your-secret-key"
-   JWT_EXPIRES_IN="24h"
-   JWT_REFRESH_EXPIRES_IN="10d"
-   
-   # Redis
-   REDIS_URL="redis://localhost:6379"
-   
-   # MinIO/S3 Storage
-   MINIO_ENDPOINT="localhost:9000"
-   MINIO_ACCESS_KEY="your-access-key"
-   MINIO_SECRET_KEY="your-secret-key"
-   MINIO_BUCKET="leyu-bucket"
-   
-   # Email Configuration
-   EMAIL_USER="your-email@gmail.com"
-   EMAIL_PASS="your-app-password"
-   
-   # SMS Providers
 
-   SMS_BASE_URL="https://api.afromessage.com/api"
-   SMS_TOKEN="your-afro-token"
-   
-   # Payment Gateway
-   SANTIM_PAY_MERCHANT_ID="your-merchant-id"
-   SANTIM_PAY_PRIVATE_KEY_IN_PEM="your-private-key"
+   On Windows PowerShell:
+
+   ```powershell
+   Copy-Item .env.example .env
    ```
 
-4. **Database Setup**
+4. Update `.env` for your local services.
+
+   Required configuration includes:
+
+   ```env
+   PORT=3000
+   NODE_ENV=development
+
+   JWT_SECRET=your_jwt_secret
+   JWT_REFRESH_SECRET=your_jwt_refresh_secret
+   JWT_EXPIRES_IN=24h
+   JWT_REFRESH_EXPIRES_IN=7d
+
+   DATABASE_URL=postgresql://postgres:postgres123@localhost:5433/mahder_db
+   DATABASE_SCHEMA=public
+
+   REDIS_HOST=localhost
+   REDIS_PORT=6379
+   REDIS_URL=redis://localhost:6379
+
+   RABBITMQ_URI=amqp://guest:guest@localhost:5672
+   RABBITMQ_QUEUE_NAME=notifications.queue
+   RABBITMQ_EXCHANGE_NAME=notifications.exchange
+   RABBITMQ_EXCHANGE_TYPE=topic
+   RABBITMQ_ROUTING_KEY=notification.created
+   RABBITMQ_DURABLE=true
+
+   DATASET_RABBITMQ_EXCHANGE_NAME=dataset.exchange
+   DATASET_RABBITMQ_QUEUE_NAME=dataset.queue
+   DATASET_RABBITMQ_ROUTING_KEY=dataset.action
+
+   SMS_BASE_URL=https://sms.com/api
+   SMS_IDENTIFIER=your_SMS_IDENTIFIER
+   SMS_SENDER=YourSenderName
+   SMS_TOKEN=your_sms_token
+
+   MINIO_ENDPOINT=http://localhost:9000
+   MINIO_ROOT_USER=minio_root_admin
+   MINIO_ROOT_PASSWORD=replace_with_a_long_random_root_password
+   MINIO_ACCESS_KEY=mahder_app_storage
+   MINIO_SECRET_KEY=replace_with_a_long_random_app_password
+   MINIO_BUCKET=mahder-bucket
+   MINIO_S3_FORCE_PATH_STYLE=true
+   MINIO_SIGNATURE_VERSION=v4
+
+   EMAIL_USER=your_email@example.com
+   EMAIL_PASS=your_email_app_password
+   ```
+
+5. Run migrations and seeds.
+
    ```bash
-   # Run migrations
    npm run migration:run
-   
-   # Seed initial data
    npm run seed
    ```
 
 ## Development
 
-### Running the Application
+Run the API in watch mode:
 
 ```bash
-# Development mode with hot reload
 npm run start:dev
+```
 
-# Production mode
-npm run start:prod
+Run in debug mode:
 
-# Debug mode
+```bash
 npm run start:debug
 ```
 
-The API will be available at `http://localhost:3000/api`
-
-### API Documentation
-
-Access the interactive API documentation at:
-- **Swagger UI**: `http://localhost:3000/doc`
-
-### Database Operations
+Run the compiled production build:
 
 ```bash
-# Generate new migration
+npm run build
+npm run start:prod
+```
+
+The API uses the global prefix `/api`.
+
+- API base URL: `http://localhost:3000/api`
+- Swagger UI: `http://localhost:3000/doc`
+- Health check: `http://localhost:3000/api/health`
+- Bull Board: `http://localhost:3000/admin/queues`
+
+## Docker
+
+Docker Compose starts:
+
+- `postgres`
+- `redis`
+- `rabbitmq`
+- `minio`
+- `minio-init`
+- `app`
+
+Start the full stack:
+
+```bash
+docker compose up -d --build
+```
+
+View logs:
+
+```bash
+docker compose logs -f
+```
+
+Stop services:
+
+```bash
+docker compose down
+```
+
+Remove containers and volumes:
+
+```bash
+docker compose down -v
+```
+
+RabbitMQ management UI is available at `http://localhost:15672` with the default local credentials `guest / guest`.
+
+MinIO is available to containers at `http://minio:9000`. For local host access, the API and console bind to `127.0.0.1:9000` and `127.0.0.1:9001` by default. The `minio-init` job creates the configured bucket and app-scoped storage user before the API starts.
+
+See [RUN_BACKEND.md](RUN_BACKEND.md) for the detailed Docker runbook.
+
+## Database and Seeds
+
+```bash
+# Generate a migration from entity changes
 npm run migration:generate
+
+# Create an empty migration
+npm run migration:create
 
 # Run migrations
 npm run migration:run
 
-# Revert last migration
+# Show migration state
+npm run migration:show
+
+# Revert the latest migration
 npm run migration:revert
 
-# Create new seed
-npm run seed:create
-
 # Run seeds
-npm run seed:run
+npm run seed
+
+# Create a seed
+npm run seed:create
 ```
 
-### Testing
+Seed files currently include initial roles, countries, regions, and rejection types.
+
+## Testing and Code Quality
 
 ```bash
 # Unit tests
 npm run test
 
-# End-to-end tests
-npm run test:e2e
+# Unit tests in watch mode
+npm run test:watch
 
 # Test coverage
 npm run test:cov
 
-# Watch mode
-npm run test:watch
-```
-### Test Account 
-```bash
- # Super Admin
-username - guest@gmail.com
-password - guest@1234
-```
-### Code Quality
+# End-to-end tests
+npm run test:e2e
 
-```bash
-# Lint code
+# Lint and auto-fix
 npm run lint
 
-# Format code
+# Format source and tests
 npm run format
 ```
 
-## Docker Deployment
+## Main API Areas
 
-### Using Docker Compose
+All routes are served under `/api`.
 
-```bash
-# Build and start services
-docker-compose up -d
+| Area | Route prefix examples | Capabilities |
+| --- | --- | --- |
+| Authentication | `/iam/auth` | Login, mobile login, refresh token, password reset, OTP verification, roles |
+| Users | `/iam/users` | User CRUD, sign-up, profile, activation, role-based lists |
+| Projects | `/project-mgmt/project` | Project CRUD, archive, manager assignment, members |
+| Tasks | `/project-mgmt/task` | Task CRUD, assignments, requirements, payments, instructions, members, close/archive |
+| Task Types | `/project-mgmt/task-type` | Task type CRUD |
+| Facilitators | `/project-mgmt/task/facilitator` | Facilitator contributor assignment and listing |
+| Invitation Links | `/project-mgmt/invitation-link` | Project/task invite creation, lookup, and acceptance |
+| Micro-tasks | `/workspace/micro-task` | Micro-task CRUD, CSV import/export, audio upload, submissions |
+| Datasets | `/workspace/data-set` | Dataset CRUD, contributor/reviewer/facilitator views, approve/reject |
+| Rejection Reasons | `/workspace/rejection-reason` | Rejection reason CRUD |
+| Task Distribution | `/task-distribution` | Assignment, contribution, audio contribution, reviewer assignment, redistribution |
+| Distribution Monitoring | `/task-distribution-monitoring` | Task, contributor, micro-task, reviewer assignment, and reviewer progress stats |
+| Settings | `/setting/*` | Countries, regions, zones, languages, dialects, organizations, sectors, annotations, flag types, rejection types |
+| Finance | `/wallet`, `/transaction`, `/score-value` | Wallet balance, withdrawals, transactions, score values |
+| Statistics | `/statistics/*` | Super-admin, project, task, dataset, language, and reviewer statistics |
+| Notifications | `/notifications` | Current-user notifications and unread count |
+| Activity Logs | `/activity-logs` | Current-user and user-specific activity logs |
+| Communication | `/blog`, `/contact-us` | Blog and contact form CRUD |
+| Cache | `/cache` | Cache clearing |
+| Health | `/health` | Application health |
 
-# View logs
-docker-compose logs -f
+For exact request and response shapes, use Swagger at `/doc`.
 
-# Stop services
-docker-compose down
-```
+## Test Accounts
 
-### Environment Variables for Docker
-
-Create a `.env` file with Docker-specific configurations:
+Run these commands from the backend directory against a **local/development database only**.
+In `.env`, enable the demo users:
 
 ```env
-DC_BACK_IMAGE_NAME=leyu-api
-DC_BACK_IMAGE_TAG=latest
-DC_BACK_APP_PORT=3000
+NODE_ENV=development
+ENABLE_DEMO_USERS_SEED=true
+DEMO_USERS_PASSWORD=<private-password-at-least-8-characters>
 ```
 
-## API Endpoints
+**Native (without Docker):** with dependencies installed and `DATABASE_URL` pointing to a database reachable from your host:
 
-### Authentication
-- `POST /api/auth/login` - User login
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/refresh` - Refresh JWT token
-- `POST /api/auth/logout` - User logout
+```bash
+npm run migration:run
+npm run seed
+```
 
-### Projects
-- `GET /api/projects` - List projects
-- `POST /api/projects` - Create project
-- `GET /api/projects/:id` - Get project details
-- `PUT /api/projects/:id` - Update project
-- `DELETE /api/projects/:id` - Delete project
+**Docker:** rebuild to include the latest seed, then run the compiled scripts:
 
-### Tasks
-- `GET /api/tasks` - List tasks
-- `POST /api/tasks` - Create task
-- `GET /api/tasks/:id` - Get task details
-- `PUT /api/tasks/:id` - Update task
-- `POST /api/tasks/:id/assign` - Assign task to user
+```bash
+docker compose up -d --build
+docker compose exec -T app npm run migration:run:prod
+docker compose exec -T \
+  -e NODE_ENV=development \
+  -e ENABLE_DEMO_USERS_SEED=true \
+  -e DEMO_USERS_PASSWORD="$DEMO_USERS_PASSWORD" \
+  app npm run seed:prod
+```
 
-### Data Sets
-- `GET /api/data-sets` - List data sets
-- `POST /api/data-sets` - Submit data set
-- `GET /api/data-sets/:id` - Get data set details
-- `PUT /api/data-sets/:id/review` - Review data set
-- `POST /api/data-sets/:id/flag` - Flag data set
+The seed uses the private `DEMO_USERS_PASSWORD` environment value for all demo
+accounts. Do not commit or paste that value into documentation.
 
-### Users
-- `GET /api/users` - List users
-- `GET /api/users/:id` - Get user profile
-- `PUT /api/users/:id` - Update user profile
-- `GET /api/users/:id/statistics` - Get user statistics
+| Role | Accounts |
+| --- | --- |
+| SuperAdmin | `admin@gmail.com` |
+| ProjectManager | `pm@gmail.com` |
+| Facilitator | `faci@gmail.com` |
+| Reviewer | `rev@gmail.com` |
+| Contributor (mobile) | `cont1@gmail.com`, `cont2@gmail.com` |
 
-## Security Features
+For mobile login, enter `123456789` or `234567890` in the phone field; the app adds `+251`.
+The seed creates or updates demo profiles, but leaves project/task creation and assignment to the UI.
+Never enable demo seeding against a production database.
 
-- **JWT Authentication**: Secure token-based authentication
-- **Role-based Access Control**: Fine-grained permissions system
-- **Input Validation**: Comprehensive request validation using Zod
-- **Rate Limiting**: API rate limiting to prevent abuse
-- **CORS Configuration**: Configurable cross-origin resource sharing
-- **SQL Injection Protection**: TypeORM query builder protection
-- **Password Hashing**: Bcrypt password encryption
+## Operational Notes
 
-## Performance Optimizations
-
-- **Redis Caching**: Intelligent caching strategy for frequently accessed data
-- **Database Indexing**: Optimized database queries with proper indexing
-- **Background Jobs**: Asynchronous processing using BullMQ
-- **Connection Pooling**: Efficient database connection management
-- **Response Compression**: Gzip compression for API responses
-
-## Monitoring & Health Checks
-
-- **Health Endpoint**: `/api/health` - Application health status
-- **Database Health**: Database connectivity monitoring
-- **Redis Health**: Cache service monitoring
-- **Custom Metrics**: Application-specific performance metrics
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Guidelines
-
-- Follow TypeScript best practices
-- Write comprehensive tests for new features
-- Update documentation for API changes
-- Follow the existing code style and conventions
-- Ensure all tests pass before submitting PR
+- `NODE_ENV=production` cannot use `CORS_ORIGIN=*`; configure a concrete origin or comma-separated origin list.
+- Docker Compose defines MinIO and an idempotent `minio-init` job for local object storage.
+- The app validates required environment variables during startup with Joi.
+- The app sanitizes database, Redis, and RabbitMQ credentials in startup logs.
+- Production Docker startup runs compiled migrations before starting the API.
 
 ## Troubleshooting
 
-### Common Issues
+### Database Connection Issues
 
-1. **Database Connection Issues**
-   - Verify PostgreSQL is running
-   - Check database credentials in `.env`
-   - Ensure database exists and is accessible
+- Confirm PostgreSQL is running.
+- Confirm `DATABASE_URL` points to the right host and port.
+- For Docker Compose, use `postgres` as the host inside `.env`; for host-machine local development against the Compose database, use `localhost:5433`.
 
-2. **Redis Connection Issues**
-   - Verify Redis server is running
-   - Check Redis URL configuration
-   - Ensure Redis is accessible from the application
+### Redis Connection Issues
 
-3. **File Upload Issues**
-   - Verify MinIO/S3 configuration
-   - Check bucket permissions
-   - Ensure storage service is accessible
+- Confirm Redis is running.
+- Confirm `REDIS_HOST`, `REDIS_PORT`, and `REDIS_URL`.
+- For Docker Compose, use `redis` as the host inside containers.
 
-4. **SMS/Email Issues**
-   - Verify provider credentials
-   - Check API endpoints and tokens
-   - Review rate limits and quotas
+### RabbitMQ Connection Issues
 
-## License
+- Confirm RabbitMQ is running.
+- Confirm `RABBITMQ_URI`.
+- For Docker Compose, use `rabbitmq` as the host inside containers.
+- RabbitMQ management is available at `http://localhost:15672`.
 
-This project is licensed under the UNLICENSED License - see the package.json file for details.
+### File Upload Issues
+
+- Confirm `MINIO_ENDPOINT`, access key, secret key, and bucket.
+- Confirm the bucket exists and the app can reach the object storage service.
+- Confirm Redis is available because upload processing uses BullMQ.
+
+### SMS, Email, or Notification Issues
+
+- Confirm provider credentials and sender settings.
+- Check provider rate limits.
+- Check RabbitMQ configuration for notification publishing.
+- Check logs for failed delivery attempts.
+
+## Contributing
+
+1. Fork the repository.
+2. Create a feature branch.
+3. Make changes with tests where appropriate.
+4. Run linting and tests.
+5. Open a pull request.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and [SECURITY.md](SECURITY.md) for project policies.
+
+## License & Attribution
+
+This project is a fork of [Dave-lab12/leyu-backend](https://github.com/Dave-lab12/leyu-backend) and is distributed under the **Apache License, Version 2.0**. See the [`LICENSE`](./LICENSE) file for the full license text.
+
+Modifications made in this fork are documented in [`CHANGES.md`](./CHANGES.md), in compliance with Section 4(b) of the Apache 2.0 License.
+
+This fork is not affiliated with or endorsed by the upstream project. Apache 2.0 does not grant trademark rights to upstream names or logos.
 
 ## Support
 

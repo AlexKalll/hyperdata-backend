@@ -28,6 +28,7 @@ import { TaskPaymentService } from './service/TaskPayment.service';
 import { TaskPayment } from './entities/TaskPayment.entity';
 import { FacilitatorController } from './controller/Facilitator.controller';
 import { TaskServiceHelperService } from './service/TaskServiceHelper.service';
+import { ProjectScopeGuard } from './guard/ProjectScope.guard';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { TaskServiceHelperService } from './service/TaskServiceHelper.service';
     TaskRequirementService,
     InvitationLinkService,
     FacilitatorContributorService,
+    ProjectScopeGuard,
   ],
   controllers: [
     ProjectController,
@@ -66,6 +68,12 @@ import { TaskServiceHelperService } from './service/TaskServiceHelper.service';
     InivitationController,
     FacilitatorController,
   ],
-  exports: [TaskService, UserTaskService, ProjectService],
+  exports: [
+    TaskService,
+    UserTaskService,
+    ProjectService,
+    ProjectScopeGuard,
+    TypeOrmModule,
+  ],
 })
 export class ProjectModule {}

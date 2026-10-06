@@ -21,6 +21,7 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger';
 import { DialectService } from '../service/Dialect.service';
+import { ReferenceDataAdminGuard } from '../guard/ReferenceDataAdmin.guard';
 import { CreateDialectDto, UpdateDialectDto } from '../dto/Dialect.dto';
 import { PaginationDto } from 'src/common/dto/Pagination.dto';
 import { ZodValidationPipe } from 'nestjs-zod';
@@ -29,6 +30,7 @@ import { RolesGuard } from 'src/auth/guard/role.guard';
 import { DialectSanitized } from '../sanitize';
 import { PaginatedResult } from 'src/utils/paginate.util';
 @Controller('/setting/dialect')
+@UseGuards(JwtAuthGuard, RolesGuard, ReferenceDataAdminGuard)
 @ApiTags('Dialects')
 export class DialectController {
   constructor(private readonly dialectService: DialectService) {}

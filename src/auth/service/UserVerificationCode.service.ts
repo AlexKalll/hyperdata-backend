@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { FindManyOptions, QueryRunner, Repository } from 'typeorm';
 import { UserVerificationCode } from '../entities/UserVerificationCode.entity';
 import { QueryOptions } from 'src/utils/queryOption.util';
+import { verifyOtpHash } from 'src/utils/security/credential.util';
 
 @Injectable()
 export class UserVerificationCodeService {
@@ -21,15 +22,17 @@ export class UserVerificationCodeService {
   async create(
     userData: Partial<UserVerificationCode>,
   ): Promise<UserVerificationCode> {
-    const vBefore = await this.findOne({
-      where: { username: userData.username },
-    });
-    if (vBefore) {
-      await this.userVerificationCodeRepository.remove(vBefore);
-    }
-    const userVerificationCode =
-      this.userVerificationCodeRepository.create(userData);
-    return await this.userVerificationCodeRepository.save(userVerificationCode);
+    return this.userVerificationCodeRepository.manager.transaction(
+      async (manager) => {
+        await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+          userData.username,
+        ]);
+        await manager.delete(UserVerificationCode, {
+          username: userData.username,
+        });
+        return manager.save(manager.create(UserVerificationCode, userData));
+      },
+    );
   }
 
   /**
@@ -83,5 +86,56 @@ export class UserVerificationCodeService {
       await manager.update(id, userVerificationCode);
       return await manager.findOne({ where: { id } });
     }
+  }
+  async consume(username: string, code: string, id?: string): Promise<void> {
+    await this.check(username, code, id, true);
+  }
+  async validate(username: string, code: string): Promise<void> {
+    await this.check(username, code, undefined, false);
+  }
+
+  private async check(
+    username: string,
+    code: string,
+    id: string | undefined,
+    consume: boolean,
+  ): Promise<void> {
+    const valid = await this.userVerificationCodeRepository.manager.transaction(
+      async (manager) => {
+        const where: any = { username, status: 'pending' };
+        if (id) where.id = id;
+        const verification = await manager.findOne(UserVerificationCode, {
+          where,
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!verification) return false;
+        if (verification.expiration_date <= new Date()) {
+          if (verification) {
+            await manager.update(UserVerificationCode, verification.id, {
+              status: 'expired',
+            });
+          }
+          return false;
+        }
+        if (
+          verification.attempt_count >= 5 ||
+          !verifyOtpHash(code, verification.code)
+        ) {
+          const attemptCount = verification.attempt_count + 1;
+          await manager.update(UserVerificationCode, verification.id, {
+            attempt_count: attemptCount,
+            status: attemptCount >= 5 ? 'expired' : 'pending',
+          });
+          return false;
+        }
+        if (consume) {
+          await manager.update(UserVerificationCode, verification.id, {
+            status: 'verified',
+          });
+        }
+        return true;
+      },
+    );
+    if (!valid) throw new Error('Invalid code');
   }
 }

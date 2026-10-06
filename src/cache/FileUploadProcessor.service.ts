@@ -14,7 +14,6 @@ export class FileUploadProcessor extends WorkerHost {
   constructor(
     private readonly fileService: FileService,
     private readonly dataSetService: DataSetService,
-    
   ) {
     super();
   }
@@ -41,12 +40,7 @@ export class FileUploadProcessor extends WorkerHost {
     }>,
     token?: string,
   ): Promise<void> {
-    const data = job.data as {
-      path: string;
-      filename: string;
-      mimetype: string;
-      dataSetId: string;
-    };
+    const data = job.data;
     try {
       await fs.access(data.path);
       const stream = createReadStream(data.path);

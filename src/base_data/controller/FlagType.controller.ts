@@ -22,6 +22,7 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger';
 import { FlagTypeService } from '../service/FlagType.service';
+import { ReferenceDataAdminGuard } from '../guard/ReferenceDataAdmin.guard';
 import {
   CreateRejectionTypeDto,
   UpdateRejectionTypeDto,
@@ -33,6 +34,7 @@ import { RolesGuard } from 'src/auth/guard/role.guard';
 import { FlagTypeSanitized } from '../sanitize';
 import { PaginatedResult } from 'src/utils/paginate.util';
 @Controller('/setting/flag-type')
+@UseGuards(JwtAuthGuard, RolesGuard, ReferenceDataAdminGuard)
 @ApiTags('Flag Type')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)

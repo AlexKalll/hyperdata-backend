@@ -21,10 +21,7 @@ export class CreateNotificationDto {
     { each: true },
   )
   notificationType:
-    | 'task-assign'
-    | 'task-invitation'
-    | 'task-rejected'
-    | 'task-approved';
+    'task-assign' | 'task-invitation' | 'task-rejected' | 'task-approved';
   @ApiProperty()
   @IsString()
   displayName: string;

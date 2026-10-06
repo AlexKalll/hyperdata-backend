@@ -18,7 +18,6 @@ import { RoleService } from './Role.service';
 import { paginate, PaginatedResult } from 'src/utils/paginate.util';
 import { PaginationService } from 'src/common/service/pagination.service';
 import { PaginationDto } from 'src/common/dto/Pagination.dto';
-import { Role } from '../entities/Role.entity';
 import { Role as RoleConstant } from '../decorators/roles.enum';
 import { QueryOptions } from 'src/utils/queryOption.util';
 import { UserVerificationCodeService } from './UserVerificationCode.service';
@@ -26,6 +25,8 @@ import { AfroResponse, SmsService } from 'src/sms/sms.service';
 import {
   hashPassword,
   verifyPassword,
+  generateOtp,
+  hashOtp,
 } from 'src/utils/security/credential.util';
 import { FileService } from 'src/common/service/File.service';
 import { DialectService } from 'src/base_data/service/Dialect.service';
@@ -36,6 +37,7 @@ import { JwtService } from '@nestjs/jwt';
 import { GENDER_CONSTANT } from 'src/utils/constants/Gender.constant';
 import { WalletService } from 'src/finance/service/Wallet.service';
 import { UserScoreService } from './UserScore.service';
+import { RefreshSessionService } from './RefreshSession.service';
 @Injectable()
 export class UserService {
   constructor(
@@ -53,6 +55,7 @@ export class UserService {
     private userScoreService: UserScoreService,
     private userVerificationService: UserVerificationCodeService,
     private jwtService: JwtService,
+    private refreshSessions: RefreshSessionService,
     // private eventEmitter: EventEmitter2,
   ) {
     this.paginationService = new PaginationService<User>(this.userRepository);
@@ -241,6 +244,7 @@ export class UserService {
         role.name == RoleConstant.CONTRIBUTOR ||
         role.name == RoleConstant.REVIEWER
       ) {
+        await this.userScoreService.createScore(userCreated.id, queryRunner);
         await this.walletService.findOneOrCreate(userCreated.id, queryRunner);
       }
       return userCreated;
@@ -272,7 +276,7 @@ export class UserService {
       }
     }
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = generateOtp();
 
     // let message = `Your verification code is ${code}`;
     const smsResponse: { error?: string; afro: AfroResponse | null } =
@@ -285,7 +289,7 @@ export class UserService {
 
       const uv = await this.userVerificationService.create({
         username: phone_number,
-        code: code,
+        code: hashOtp(code),
         expiration_date: code_expiration_date,
       });
       return {
@@ -299,16 +303,11 @@ export class UserService {
    * @throws {BadRequestException} - If the verification code is invalid or expired
    */
   async verifyOtp(id: string, username: string, code: string): Promise<void> {
-    const userVerificationCode = await this.userVerificationService.findOne({
-      where: { id: id, username: username, code: code },
-    });
-    if (!userVerificationCode) {
-      throw new BadRequestException('Invalid code');
+    try {
+      await this.userVerificationService.consume(username, code, id);
+    } catch {
+      throw new BadRequestException('Invalid or expired code');
     }
-    if (userVerificationCode.expiration_date < new Date()) {
-      throw new BadRequestException('Code expired');
-    }
-    return;
   }
   /**
    * Verifies a user's account given a verification code
@@ -341,10 +340,13 @@ export class UserService {
           is_active: false,
         });
     user.password = '';
-    const access_token = this.jwtService.sign({
-      sub: user?.id,
-      email: user?.email,
-    });
+    const access_token = this.jwtService.sign(
+      {
+        sub: user?.id,
+        onboarding: true,
+      },
+      { expiresIn: '15m' },
+    );
     return { user, access_token };
   }
 
@@ -402,12 +404,12 @@ export class UserService {
       if (query.where.length === 0) {
         query.where.push({ is_active: true, role_id: manager_role_id });
       } else {
-      const data = query.where.map((item) =>({
-        ...item,
-        is_active: true,
-        role_id: manager_role_id,
-      }));
-    }
+        const data = query.where.map((item) => ({
+          ...item,
+          is_active: true,
+          role_id: manager_role_id,
+        }));
+      }
     } else {
       query.where = {
         ...query.where,
@@ -534,19 +536,32 @@ export class UserService {
    * @throws {BadRequestException} - If the email already exists.
    */
   async firstUpdate(id: any, userData: Partial<User>): Promise<User | null> {
-    delete userData.id;
-    // delete userData.password;
-    userData.is_active = true;
-    const hashedPassword = await hashPassword(userData.password || 'pending');
-    userData.password = hashedPassword;
-    if (userData.email) {
-      const user = await this.findOne({ where: { email: userData.email } });
+    const update = {
+      first_name: userData.first_name,
+      middle_name: userData.middle_name,
+      last_name: userData.last_name,
+      email: userData.email,
+      password: await hashPassword(userData.password || 'pending'),
+      birth_date: userData.birth_date,
+      gender: userData.gender,
+      city: userData.city,
+      woreda: userData.woreda,
+      dialect_id: userData.dialect_id,
+      language_id: userData.language_id,
+      region_id: userData.region_id,
+      zone_id: userData.zone_id,
+      is_active: true,
+    };
+    if (update.email) {
+      const user = await this.findOne({
+        where: { email: update.email, id: Not(id) },
+      });
       if (user) {
         throw new BadRequestException('Email already exists');
       }
     }
     const manager = this.userRepository;
-    await manager.update(id, userData);
+    await manager.update(id, update);
     const user = await manager.findOne({
       where: { id },
       relations: { role: true },
@@ -689,60 +704,33 @@ export class UserService {
       throw new NotFoundException('User not found');
     }
     await this.userRepository.save({ ...user, is_active: !user.is_active });
+    if (user.is_active) await this.refreshSessions.revokeAll(user.id);
     return await this.findOne({ where: { id } });
   }
 
   /**
-   * Creates a super admin user if one does not exist.
-   * Creates all the roles if they do not exist.
-   * Creates a super admin user with the id '15bc2137-0b08-449e-8e7e-c68f2e830bd5'
-   * , the email 'guest@gmail.com', the role 'SuperAdmin',
-   * and the password 'guest@1234'.
+   * Ensures all roles exist in the database.
+   * Creates any missing roles on startup.
    * @returns A promise resolving to nothing.
    */
   private async createSuperAdminIfNotExists() {
-    const superAdminExists = await this.userRepository.findOne({
-      where: {
-        role: { name: 'SuperAdmin' },
-      },
-    });
     await Promise.all(
-      ['Admin', 'ProjectManager', 'Reviewer', 'Facilitator', 'Contributor'].map(
-        async (name) => {
-          const role = await this.roleService.findOne({ name });
-          if (!role) {
-            await this.roleService.create({
-              name,
-              description: `${name} Role`,
-            });
-          }
-        },
-      ),
+      [
+        'SuperAdmin',
+        'ProjectManager',
+        'Reviewer',
+        'Facilitator',
+        'Contributor',
+      ].map(async (name) => {
+        const role = await this.roleService.findOne({ name });
+        if (!role) {
+          await this.roleService.create({
+            name,
+            description: `${name} Role`,
+          });
+        }
+      }),
     );
-    if (!superAdminExists) {
-      let role: Role | null = await this.roleService.findOne({
-        name: 'SuperAdmin',
-      });
-      if (!role) {
-        role = await this.roleService.create({
-          name: 'SuperAdmin',
-          description: 'Super Admin Role',
-        });
-      }
-      const hashedPassword = await hashPassword('guest@1234');
-      const superAdmin: User = this.userRepository.create({
-        id: '15bc2137-0b08-449e-8e7e-c68f2e830bd5',
-        first_name: 'SuperAdmin',
-        middle_name: 'SuperAdmin',
-        last_name: 'SuperAdmin',
-        gender: 'Female',
-        phone_number: '',
-        email: 'guest@gmail.com',
-        password: hashedPassword,
-        role: role || undefined,
-      });
-      await this.userRepository.save(superAdmin);
-    }
   }
   /**
    * Changes the password of a user
@@ -781,7 +769,9 @@ export class UserService {
     }
     const hashedPassword = await hashPassword(new_password);
     user.password = hashedPassword;
-    return await this.userRepository.save(user);
+    const updatedUser = await this.userRepository.save(user);
+    await this.refreshSessions.revokeAll(user_id);
+    return updatedUser;
   }
 
   /**
