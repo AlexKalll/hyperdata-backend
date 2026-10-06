@@ -293,6 +293,16 @@ record.
 - Preserved the contributor's recorded attempt count when a reviewer rejects a
   cached submission, keeping a task with available retries recordable again.
 
+## 2026-09-25 - Administration workflow fixes
+
+- Added class-validator metadata for country, dialect, and sector request DTOs
+  so valid fields survive the global strict validation pipe.
+- Seeded six default African countries through an idempotent migration and
+  corrected the corresponding ISO alpha-3 codes in the reusable seed.
+- Excluded existing task members from every branch of unassigned-user searches.
+- Resolved task instruction deletion by the task ID used in the public route.
+- Sanitized password-only Redis URLs in startup logs.
+
 ## How to record future changes
 
 When making non-trivial modifications, add a short entry under a new dated

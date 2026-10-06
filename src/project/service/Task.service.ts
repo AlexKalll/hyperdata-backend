@@ -468,10 +468,10 @@ export class TaskService {
       queryRunner,
     );
   }
-  async deleteInstruction(id: string): Promise<void> {
+  async deleteInstruction(taskId: string): Promise<void> {
     const taskInstruction: TaskInstruction | null =
       await this.taskInstructionService.findOne({
-        where: { id },
+        where: { task_id: taskId },
       });
     if (!taskInstruction) {
       throw new NotFoundException(`Task Instruction not found`);
@@ -1420,43 +1420,33 @@ export class TaskService {
       where: { task_id: taskId, role: role },
     });
     const memberUserIds = members.map((member) => member.user_id);
-    let filter = userFilterDto;
-    // Normalize filters into an array (so we can safely modify them)
-    if (memberUserIds.length > 0) {
-      // Apply "exclude members" to EACH filter
-      if (!Array.isArray(userFilterDto)) {
-        filter = { ...userFilterDto, id: Not(In(memberUserIds)) };
-      } else {
-        const userFilter: FindOptionsWhere<User>[] = [];
-        for (const filter of userFilterDto) {
-          const d = { ...filter, id: Not(In(memberUserIds)) };
-          userFilter.push(d);
-        }
-
-        // userFilterDto=userFilterDto.map((filter) => ({
-        //   ...filter,
-        //   id: Not(In(memberUserIds)),  //  Exclude members
-        // }));
-      }
-    }
+    const filter =
+      memberUserIds.length === 0
+        ? userFilterDto
+        : Array.isArray(userFilterDto)
+          ? userFilterDto.map((item) => ({
+              ...item,
+              id: Not(In(memberUserIds)),
+            }))
+          : { ...userFilterDto, id: Not(In(memberUserIds)) };
     if (role == 'Contributor') {
       return this.userService.findContributorsPaginate(
         {
-          where: userFilterDto,
+          where: filter,
         },
         paginationDto,
       );
     } else if (role == 'Facilitator') {
       return this.userService.findFacilitatorPaginate(
         {
-          where: userFilterDto,
+          where: filter,
         },
         paginationDto,
       );
     } else if (role == 'Reviewer') {
       return this.userService.findReviewersPaginate(
         {
-          where: userFilterDto,
+          where: filter,
         },
         paginationDto,
       );
