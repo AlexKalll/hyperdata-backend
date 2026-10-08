@@ -328,6 +328,16 @@ record.
 - Aligned the contributor submission detail response with the same retry-count
   semantics.
 
+## 2026-10-06 - MinIO container compatibility
+
+- Replaced unavailable Docker Hub/Quay MinIO image references with pinned
+  Bitnami Legacy MinIO and MinIO Client images that retain the existing S3 and
+  admin APIs.
+- Kept the image references in reviewed Compose files instead of environment
+  files, preventing accidental storage-image overrides.
+- Preserved the existing `/data` volume layout and ran MinIO as root to retain
+  access to data owned by the previous container image.
+
 ## How to record future changes
 
 When making non-trivial modifications, add a short entry under a new dated
