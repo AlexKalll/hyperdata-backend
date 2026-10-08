@@ -239,6 +239,17 @@ record.
   its non-null role column.
 - Added focused regression coverage for the test text submission path.
 
+## 2026-10-06 - Reviewer retry continuity
+
+### Task distribution
+
+- Automatically attach contributor retry submissions to the active reviewer
+  assignment that handled the previous rejected attempt, avoiding a second
+  project-manager distribution for normal retries.
+- Preserve empty active reviewer assignment records so they remain available
+  for future retries; expired or unavailable assignments still fall back to
+  the existing manual reviewer distribution flow.
+
 ## 2026-09-23 - Showcase seed identity alignment
 
 ### Seed and test data

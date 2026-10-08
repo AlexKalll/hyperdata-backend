@@ -104,6 +104,80 @@ export class ReviewerTaskService {
   }
 
   /**
+   * Assigns retry submissions to the reviewer who handled the previous
+   * rejected attempt when that reviewer still has an active assignment for
+   * the task. This keeps retries in the same review queue without requiring
+   * the project manager to redistribute the whole task.
+   *
+   * If the previous assignment has expired or no longer exists, the dataset
+   * is left unassigned so the normal project-manager distribution flow can
+   * handle it.
+   */
+  async assignRetryDataSetsToPreviousReviewers(
+    taskId: string,
+    dataSets: Pick<DataSet, 'id' | 'micro_task_id'>[],
+    previousDataSets: Pick<
+      DataSet,
+      'micro_task_id' | 'status' | 'reviewer_id'
+    >[],
+    queryRunner: QueryRunner,
+  ): Promise<void> {
+    const previousReviewerByMicroTask = new Map<string, string>();
+    for (const previousDataSet of previousDataSets) {
+      if (
+        (previousDataSet.status === 'Rejected' ||
+          previousDataSet.status === 'Flagged') &&
+        previousDataSet.reviewer_id &&
+        !previousReviewerByMicroTask.has(previousDataSet.micro_task_id)
+      ) {
+        previousReviewerByMicroTask.set(
+          previousDataSet.micro_task_id,
+          previousDataSet.reviewer_id,
+        );
+      }
+    }
+
+    const dataSetsByReviewer = new Map<string, string[]>();
+    for (const dataSet of dataSets) {
+      const reviewerId = previousReviewerByMicroTask.get(dataSet.micro_task_id);
+      if (!reviewerId || !dataSet.id) continue;
+
+      const reviewerDataSetIds = dataSetsByReviewer.get(reviewerId) || [];
+      reviewerDataSetIds.push(dataSet.id);
+      dataSetsByReviewer.set(reviewerId, reviewerDataSetIds);
+    }
+
+    const manager = queryRunner.manager;
+    for (const [reviewerId, dataSetIds] of dataSetsByReviewer) {
+      const reviewerTask = await manager
+        .createQueryBuilder(ReviewerTasks, 'reviewer_task')
+        .setLock('pessimistic_write')
+        .where('reviewer_task.reviewer_id = :reviewerId', { reviewerId })
+        .andWhere('reviewer_task.task_id = :taskId', { taskId })
+        .andWhere('reviewer_task.expire_date > NOW()')
+        .getOne();
+
+      if (!reviewerTask) continue;
+
+      const assignedDataSetIds = reviewerTask.data_set_ids || [];
+      const updatedDataSetIds = [
+        ...new Set([...assignedDataSetIds, ...dataSetIds]),
+      ];
+      await manager.update(
+        ReviewerTasks,
+        { id: reviewerTask.id },
+        { data_set_ids: updatedDataSetIds },
+      );
+
+      await Promise.all(
+        dataSetIds.map((dataSetId) =>
+          manager.update(DataSet, dataSetId, { reviewer_id: reviewerId }),
+        ),
+      );
+    }
+  }
+
+  /**
    * Distributes pending task data sets among reviewers while respecting
    * reviewer limits, previously reviewed data, and existing active assignments.
    *
@@ -153,7 +227,7 @@ export class ReviewerTaskService {
     const invalidReviewerAssignments = allReviewerAssignedDataSets.filter(
       (assignment) => !eligibleReviewerIds.has(assignment.reviewer_id),
     );
-    let reviewerAssignedDataSets = allReviewerAssignedDataSets.filter(
+    const reviewerAssignedDataSets = allReviewerAssignedDataSets.filter(
       (assignment) => eligibleReviewerIds.has(assignment.reviewer_id),
     );
     for (let index = 0; index < reviewerIds.length; index++) {
@@ -222,9 +296,8 @@ export class ReviewerTaskService {
       }
       if (start >= unAssignedDataSets.length) break;
     }
-    reviewerAssignedDataSets = reviewerAssignedDataSets.filter(
-      (rT) => rT.data_set_ids.length > 0,
-    );
+    // Keep empty active assignments. A reviewer may need to receive a retry
+    // directly after a rejected submission without another PM distribution.
     await this.reviewerTaskRepository.save(reviewerAssignedDataSets);
     if (invalidReviewerAssignments.length > 0) {
       await this.reviewerTaskRepository.delete({
