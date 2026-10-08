@@ -5,6 +5,8 @@ jest.mock('src/common/service/Notification.service', () => ({
 import { FindOperator } from 'typeorm';
 import { ReviewerTaskService } from './ReviewerTasks.service';
 import { Task } from 'src/project/entities/Task.entity';
+import { DataSet } from 'src/data_set/entities/DataSet.entity';
+import { ReviewerTasks } from '../enitities/ReviewerTasks.entity';
 
 describe('ReviewerTaskService distribution', () => {
   let repository: {
@@ -91,5 +93,64 @@ describe('ReviewerTaskService distribution', () => {
     ).toEqual(['dataset-1', 'dataset-2', 'dataset-3']);
     expect(notificationService.create).toHaveBeenCalledTimes(3);
     expect(repository.delete).not.toHaveBeenCalled();
+  });
+
+  it('keeps an empty active reviewer assignment for future retries', async () => {
+    repository.find.mockResolvedValue([]);
+
+    await service.distributeTaskForReviewers(task, [], [], ['reviewer-id']);
+
+    expect(repository.save).toHaveBeenCalledWith([
+      expect.objectContaining({
+        reviewer_id: 'reviewer-id',
+        data_set_ids: [],
+      }),
+    ]);
+  });
+
+  it('attaches a retry to the reviewer of the rejected attempt', async () => {
+    const reviewerTask = {
+      id: 'reviewer-task-id',
+      task_id: 'task-id',
+      reviewer_id: 'reviewer-id',
+      data_set_ids: [],
+      expire_date: new Date(Date.now() + 60_000),
+    };
+    const queryBuilder = {
+      setLock: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getOne: jest.fn().mockResolvedValue(reviewerTask),
+    };
+    const manager = {
+      createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
+      update: jest.fn(),
+    };
+
+    await service.assignRetryDataSetsToPreviousReviewers(
+      'task-id',
+      [{ id: 'retry-dataset-id', micro_task_id: 'micro-task-id' }],
+      [
+        {
+          micro_task_id: 'micro-task-id',
+          status: 'Rejected',
+          reviewer_id: 'reviewer-id',
+        },
+      ],
+      { manager } as any,
+    );
+
+    expect(manager.update).toHaveBeenNthCalledWith(
+      1,
+      ReviewerTasks,
+      { id: 'reviewer-task-id' },
+      { data_set_ids: ['retry-dataset-id'] },
+    );
+    expect(manager.update).toHaveBeenNthCalledWith(
+      2,
+      DataSet,
+      'retry-dataset-id',
+      { reviewer_id: 'reviewer-id' },
+    );
   });
 });

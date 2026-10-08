@@ -175,7 +175,7 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
           microTask.acceptance_status = 'REJECTED';
           // A rejection changes status; it does not add another attempt.
           microTask.can_retry =
-            microTask.allowed_retry > microTask.current_retry;
+            microTask.allowed_retry >= microTask.current_retry;
           if (microTask.dataSet) {
             microTask.dataSet.status = 'Rejected';
           }

@@ -239,6 +239,17 @@ record.
   its non-null role column.
 - Added focused regression coverage for the test text submission path.
 
+## 2026-10-06 - Reviewer retry continuity
+
+### Task distribution
+
+- Automatically attach contributor retry submissions to the active reviewer
+  assignment that handled the previous rejected attempt, avoiding a second
+  project-manager distribution for normal retries.
+- Preserve empty active reviewer assignment records so they remain available
+  for future retries; expired or unavailable assignments still fall back to
+  the existing manual reviewer distribution flow.
+
 ## 2026-09-23 - Showcase seed identity alignment
 
 ### Seed and test data
@@ -308,6 +319,24 @@ record.
 - Added global-validation allowlist metadata to organization and zone Zod DTOs so
   valid create/update fields reach their route-level Zod validation.
 - Included sector descriptions in sanitized list responses for the admin table.
+
+## 2026-09-27 - Contributor retry recovery
+
+- Marked a rejected submission retryable when the contributor still has the
+  configured retry available, including the one-retry configuration.
+- Kept Redis retry metadata consistent with the database submission limit.
+- Aligned the contributor submission detail response with the same retry-count
+  semantics.
+
+## 2026-10-06 - MinIO container compatibility
+
+- Replaced unavailable Docker Hub/Quay MinIO image references with pinned
+  Bitnami Legacy MinIO and MinIO Client images that retain the existing S3 and
+  admin APIs.
+- Kept the image references in reviewed Compose files instead of environment
+  files, preventing accidental storage-image overrides.
+- Preserved the existing `/data` volume layout and ran MinIO as root to retain
+  access to data owned by the previous container image.
 
 ## How to record future changes
 
