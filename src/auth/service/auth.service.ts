@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -210,7 +211,13 @@ export class AuthService {
         message,
       );
     } else {
-      await this.smsService.sendVerificationCode(user.phone_number, code);
+      const smsSent = await this.smsService.sendVerificationCode(
+        user.phone_number,
+        code,
+      );
+      if (!smsSent) {
+        throw new InternalServerErrorException('Failed to send SMS');
+      }
     }
     const uv = await this.userVerificationService.create({
       username: username,

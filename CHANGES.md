@@ -338,6 +338,24 @@ record.
 - Preserved the existing `/data` volume layout and ran MinIO as root to retain
   access to data owned by the previous container image.
 
+## 2026-10-09 - SMS OTP provider setup
+
+- Configured the ignored local environment for AfroMessage's API and the
+  subscribed identifier; the account has no approved sender name yet.
+- Removed plaintext OTP logging and encoded SMS parameters with Axios.
+- Classified provider errors without logging raw responses, OTPs or API tokens.
+- Made the optional sender name conditional and allowed a blank sender in
+  backend configuration.
+
+## 2026-10-10 - SMS Ethiopia OTP provider
+
+- Added a selectable SMS Ethiopia adapter using its HTTPS send API and private
+  `KEY` header, normalizing local mobile signup numbers while keeping
+  AfroMessage as the default provider.
+- Required the selected provider's credentials at startup and accepted OTP
+  issuance only when the selected provider confirms the send request.
+- Prevented failed password-reset SMS requests from issuing unusable OTPs.
+
 ## How to record future changes
 
 When making non-trivial modifications, add a short entry under a new dated

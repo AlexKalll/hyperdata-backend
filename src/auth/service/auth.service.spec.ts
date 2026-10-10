@@ -100,7 +100,7 @@ describe('AuthService', () => {
       findOne: jest.fn(),
       consume: jest.fn(),
     };
-    smsService = { sendVerificationCode: jest.fn() };
+    smsService = { sendVerificationCode: jest.fn().mockResolvedValue(true) };
     mailService = { sendEmail: jest.fn() };
     fileService = { getPreSignedUrl: jest.fn() };
     jwtService = { verify: jest.fn(), sign: jest.fn() };
@@ -120,7 +120,7 @@ describe('AuthService', () => {
       permissionsService as any,
       rolesService as any,
       userVerificationService as any,
-      smsService,
+      smsService as any,
       mailService as any,
       fileService as any,
       jwtService as unknown as JwtService,
