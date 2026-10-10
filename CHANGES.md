@@ -338,6 +338,37 @@ record.
 - Preserved the existing `/data` volume layout and ran MinIO as root to retain
   access to data owned by the previous container image.
 
+## 2026-10-09 - SMS OTP provider setup
+
+- Configured the ignored local environment for AfroMessage's API and the
+  subscribed identifier; the account has no approved sender name yet.
+- Removed plaintext OTP logging and encoded SMS parameters with Axios.
+- Classified provider errors without logging raw responses, OTPs or API tokens.
+- Made the optional sender name conditional and allowed a blank sender in
+  backend configuration.
+
+## 2026-10-10 - SMS Ethiopia OTP provider
+
+- Added a selectable SMS Ethiopia adapter using its HTTPS send API and private
+  `KEY` header, normalizing local mobile signup numbers while keeping
+  AfroMessage as the default provider.
+- Required the selected provider's credentials at startup and accepted OTP
+  issuance only when the selected provider confirms the send request.
+- Prevented failed password-reset SMS requests from issuing unusable OTPs.
+
+## 2026-10-10 - Contributor onboarding reference data
+
+- Allowed verified, inactive contributors to read only the language and dialect
+  lists using their short-lived onboarding token; other protected endpoints keep
+  their existing active-user requirement.
+- Added an idempotent Ethiopian-language seed with dialect choices for all five
+  onboarding languages, without overwriting existing admin-managed entries.
+
+## 2026-10-10 - Language administration validation
+
+- Allowed the Zod-backed language name/code fields through the global DTO
+  whitelist and validated language edits with the same Zod schema as creates.
+
 ## How to record future changes
 
 When making non-trivial modifications, add a short entry under a new dated

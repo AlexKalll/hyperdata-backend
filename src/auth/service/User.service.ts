@@ -21,7 +21,7 @@ import { PaginationDto } from 'src/common/dto/Pagination.dto';
 import { Role as RoleConstant } from '../decorators/roles.enum';
 import { QueryOptions } from 'src/utils/queryOption.util';
 import { UserVerificationCodeService } from './UserVerificationCode.service';
-import { AfroResponse, SmsService } from 'src/sms/sms.service';
+import { SmsService } from 'src/sms/sms.service';
 import {
   hashPassword,
   verifyPassword,
@@ -279,9 +279,11 @@ export class UserService {
     const code = generateOtp();
 
     // let message = `Your verification code is ${code}`;
-    const smsResponse: { error?: string; afro: AfroResponse | null } =
-      await this.smsService.sendVerificationCode(phone_number, code);
-    if (smsResponse.afro?.acknowledge == 'error' || smsResponse.error) {
+    const smsSent = await this.smsService.sendVerificationCode(
+      phone_number,
+      code,
+    );
+    if (!smsSent) {
       throw new InternalServerErrorException('Failed to send SMS');
     } else {
       const code_expiration_date = new Date();

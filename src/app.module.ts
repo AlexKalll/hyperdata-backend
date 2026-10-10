@@ -54,10 +54,30 @@ import configuration from './config/configuration';
         DATASET_RABBITMQ_EXCHANGE_NAME: Joi.string().required(),
         DATASET_RABBITMQ_QUEUE_NAME: Joi.string().required(),
         DATASET_RABBITMQ_ROUTING_KEY: Joi.string().required(),
-        SMS_BASE_URL: Joi.string().required(),
-        SMS_IDENTIFIER: Joi.string().required(),
-        SMS_SENDER: Joi.string().required(),
-        SMS_TOKEN: Joi.string().required(),
+        SMS_PROVIDER: Joi.string()
+          .valid('afromessage', 'smsethiopia')
+          .default('afromessage'),
+        SMS_BASE_URL: Joi.when('SMS_PROVIDER', {
+          is: 'afromessage',
+          then: Joi.string().required(),
+          otherwise: Joi.string().allow('').optional(),
+        }),
+        SMS_IDENTIFIER: Joi.when('SMS_PROVIDER', {
+          is: 'afromessage',
+          then: Joi.string().required(),
+          otherwise: Joi.string().allow('').optional(),
+        }),
+        SMS_SENDER: Joi.string().allow('').default(''),
+        SMS_TOKEN: Joi.when('SMS_PROVIDER', {
+          is: 'afromessage',
+          then: Joi.string().required(),
+          otherwise: Joi.string().allow('').optional(),
+        }),
+        SMS_ETHIOPIA_API_KEY: Joi.when('SMS_PROVIDER', {
+          is: 'smsethiopia',
+          then: Joi.string().required(),
+          otherwise: Joi.string().allow('').optional(),
+        }),
         MINIO_ENDPOINT: Joi.string().required(),
         MINIO_ACCESS_KEY: Joi.string().required(),
         MINIO_SECRET_KEY: Joi.string().required(),
