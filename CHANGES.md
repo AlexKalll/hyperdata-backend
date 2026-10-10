@@ -369,6 +369,24 @@ record.
 - Allowed the Zod-backed language name/code fields through the global DTO
   whitelist and validated language edits with the same Zod schema as creates.
 
+## 2026-10-10 - Transactional email quality
+
+- Added branded HTML and plain-text templates for password-reset codes, project
+  and task assignments, and task-flag notices.
+- Configured the Gmail sender from `EMAIL_USER` and made frontend sign-in links
+  use the required `FRONTEND_URL` environment variable.
+- Replaced predictable temporary assignment passwords with cryptographically
+  generated values and prevented duplicate assignment notices.
+- Fixed task flagging to persist the inactive/flagged state and send its notice.
+
+## 2026-10-11 - Data Mahder email branding
+
+- Updated the sender display, email headers, subjects, message headings, calls to
+  action, and closing to use “Data Mahder”.
+- Added the selected low-resource-language subtitle beneath the email wordmark
+  and removed the redundant content heading above the greeting.
+- Removed the automated/no-reply footer from transactional email templates.
+
 ## How to record future changes
 
 When making non-trivial modifications, add a short entry under a new dated
