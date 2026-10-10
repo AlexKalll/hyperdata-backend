@@ -338,6 +338,13 @@ record.
 - Preserved the existing `/data` volume layout and ran MinIO as root to retain
   access to data owned by the previous container image.
 
+## 2026-10-10 - Resend SMTP transport option
+
+- Added an environment-selected Resend SMTP transport using the existing NestJS
+  Mailer/Nodemailer integration, while retaining Gmail as the default.
+- Validate the Resend API key and sender address when Resend is selected, and
+  documented both provider configurations in the environment examples.
+
 ## How to record future changes
 
 When making non-trivial modifications, add a short entry under a new dated

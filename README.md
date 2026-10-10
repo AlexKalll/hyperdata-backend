@@ -257,8 +257,14 @@ The system is designed around projects, tasks, micro-tasks, contributors, review
    MINIO_S3_FORCE_PATH_STYLE=true
    MINIO_SIGNATURE_VERSION=v4
 
+   EMAIL_PROVIDER=gmail
    EMAIL_USER=your_email@example.com
    EMAIL_PASS=your_email_app_password
+
+   # Or use Resend SMTP after verifying the sender domain in Resend:
+   # EMAIL_PROVIDER=resend
+   # RESEND_API_KEY=re_your_resend_api_key
+   # EMAIL_FROM=hello@mahder.ai
    ```
 
 5. Run migrations and seeds.

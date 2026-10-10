@@ -9,7 +9,7 @@ import { CommunicationModule } from './communication/communication.module';
 import { AuthModule } from './auth/auth.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { dataSourceOptions } from 'src/database/data-source';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SmsModule } from './sms/sms.module';
 import { FinanceModule } from './finance/finance.module';
 import { EmailModule } from './email/email.module';
@@ -62,8 +62,27 @@ import configuration from './config/configuration';
         MINIO_ACCESS_KEY: Joi.string().required(),
         MINIO_SECRET_KEY: Joi.string().required(),
         MINIO_BUCKET: Joi.string().required(),
-        EMAIL_USER: Joi.string().required(),
-        EMAIL_PASS: Joi.string().required(),
+        EMAIL_PROVIDER: Joi.string().valid('gmail', 'resend').default('gmail'),
+        EMAIL_USER: Joi.when('EMAIL_PROVIDER', {
+          is: 'gmail',
+          then: Joi.string().required(),
+          otherwise: Joi.string().allow('').optional(),
+        }),
+        EMAIL_PASS: Joi.when('EMAIL_PROVIDER', {
+          is: 'gmail',
+          then: Joi.string().required(),
+          otherwise: Joi.string().allow('').optional(),
+        }),
+        RESEND_API_KEY: Joi.when('EMAIL_PROVIDER', {
+          is: 'resend',
+          then: Joi.string().required(),
+          otherwise: Joi.string().allow('').optional(),
+        }),
+        EMAIL_FROM: Joi.when('EMAIL_PROVIDER', {
+          is: 'resend',
+          then: Joi.string().email().required(),
+          otherwise: Joi.string().allow('').optional(),
+        }),
         ENABLE_WITHDRAWALS: Joi.string()
           .valid('true', 'false')
           .default('false'),
@@ -90,16 +109,36 @@ import configuration from './config/configuration';
         abortEarly: true,
       },
     }),
-    MailerModule.forRoot({
-      transport: {
-        service: 'gmail',
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      },
-      defaults: {
-        from: '"Mahder" mahder@gmail.com',
+    MailerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const emailProvider = config.get<string>('EMAIL_PROVIDER', 'gmail');
+
+        return {
+          transport:
+            emailProvider === 'resend'
+              ? {
+                  host: 'smtp.resend.com',
+                  port: 465,
+                  secure: true,
+                  auth: {
+                    user: 'resend',
+                    pass: config.get<string>('RESEND_API_KEY', ''),
+                  },
+                }
+              : {
+                  service: 'gmail',
+                  auth: {
+                    user: config.get<string>('EMAIL_USER'),
+                    pass: config.get<string>('EMAIL_PASS'),
+                  },
+                },
+          defaults: {
+            from:
+              config.get<string>('EMAIL_FROM') || '"Mahder" <mahder@gmail.com>',
+          },
+        };
       },
     }),
     BullModule.forRoot({
