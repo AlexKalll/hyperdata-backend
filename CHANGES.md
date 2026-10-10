@@ -364,6 +364,11 @@ record.
 - Added an idempotent Ethiopian-language seed with dialect choices for all five
   onboarding languages, without overwriting existing admin-managed entries.
 
+## 2026-10-10 - Language administration validation
+
+- Allowed the Zod-backed language name/code fields through the global DTO
+  whitelist and validated language edits with the same Zod schema as creates.
+
 ## How to record future changes
 
 When making non-trivial modifications, add a short entry under a new dated

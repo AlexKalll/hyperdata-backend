@@ -95,6 +95,7 @@ export class LanguageController {
   }
 
   @Put(':id')
+  @UsePipes(new ZodValidationPipe())
   @UseGuards(JwtAuthGuard, RolesGuard)
   async update(
     @Param('id') id: string,
