@@ -25,6 +25,7 @@ import { CreateLanguageDto, UpdateLanguageDto } from '../dto/Language.dto';
 import { PaginationDto } from 'src/common/dto/Pagination.dto';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
+import { AllowOnboardingRead } from 'src/auth/decorators/allow-onboarding-read.decorator';
 import { RolesGuard } from 'src/auth/guard/role.guard';
 import { LanguageSanitized } from '../sanitize';
 import { PaginatedResult } from 'src/utils/paginate.util';
@@ -75,6 +76,8 @@ export class LanguageController {
   }
 
   @Get('all')
+  @AllowOnboardingRead()
+  @ApiBearerAuth()
   async findAll(@Query() query: UpdateLanguageDto) {
     const data = await this.languageService.findMany(query);
     return data.map((item) => LanguageSanitized.from(item));

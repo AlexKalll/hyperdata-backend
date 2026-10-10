@@ -356,6 +356,14 @@ record.
   issuance only when the selected provider confirms the send request.
 - Prevented failed password-reset SMS requests from issuing unusable OTPs.
 
+## 2026-10-10 - Contributor onboarding reference data
+
+- Allowed verified, inactive contributors to read only the language and dialect
+  lists using their short-lived onboarding token; other protected endpoints keep
+  their existing active-user requirement.
+- Added an idempotent Ethiopian-language seed with dialect choices for all five
+  onboarding languages, without overwriting existing admin-managed entries.
+
 ## How to record future changes
 
 When making non-trivial modifications, add a short entry under a new dated
