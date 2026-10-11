@@ -68,7 +68,7 @@ The project uses the following RabbitMQ-related packages:
 **Environment Variables** (`.env.example`):
 ```bash
 # RabbitMQ Connection
-RABBITMQ_URI=amqp://guest:guest@localhost:5672
+RABBITMQ_URI=amqp://local_user:replace_with_a_unique_local_password@localhost:5672
 
 # Notification System
 RABBITMQ_QUEUE_NAME=notifications.queue
@@ -148,10 +148,10 @@ async publishDatasetAction(event: DatasetActionEvent)
    **Using Docker** (Recommended):
    ```bash
    docker run -d --name rabbitmq \
-     -p 5672:5672 \
-     -p 15672:15672 \
-     -e RABBITMQ_DEFAULT_USER=admin \
-     -e RABBITMQ_DEFAULT_PASS=admin123 \
+     -p 127.0.0.1:5672:5672 \
+     -p 127.0.0.1:15672:15672 \
+     -e RABBITMQ_DEFAULT_USER=local_user \
+     -e RABBITMQ_DEFAULT_PASS=replace_with_a_unique_local_password \
      rabbitmq:3-management
    ```
 
@@ -174,12 +174,12 @@ async publishDatasetAction(event: DatasetActionEvent)
    
    Update RabbitMQ settings in `.env`:
    ```bash
-   RABBITMQ_URI=amqp://admin:admin123@localhost:5672
+   RABBITMQ_URI=amqp://local_user:replace_with_a_unique_local_password@localhost:5672
    ```
 
 3. **Verify Connection**:
-   - Management UI: http://localhost:15672
-   - Default credentials: admin/admin123
+   - Confirm the API can connect to the broker at the configured `RABBITMQ_URI`.
+   - The repository's development Compose file does not publish RabbitMQ or its management UI to the host. Containers use the `rabbitmq` service name.
 
 ### Production Configuration
 
@@ -449,7 +449,7 @@ describe('RabbitMQ Integration', () => {
 
 ### Management UI
 
-Access RabbitMQ Management UI at: http://localhost:15672
+The repository's development Compose file does not publish the RabbitMQ Management UI. If you enable it in a local-only Compose override, bind it to loopback and authenticate with the local broker credentials from `.env`.
 
 **Key Metrics to Monitor**:
 - Queue depth (number of unprocessed messages)
@@ -694,12 +694,13 @@ services:
     image: rabbitmq:3-management
     container_name: mahder-rabbitmq
     environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin123
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:?Set a local RabbitMQ username}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Set a unique local RabbitMQ password}
       RABBITMQ_DEFAULT_VHOST: mahder
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      # This standalone example publishes ports; keep them loopback-only for local development.
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:

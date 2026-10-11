@@ -50,11 +50,12 @@ If you're new to open source or this project:
 
 ```bash
 # Fork the repository on GitHub, then clone your fork
-git clone https://github.com/YOUR_USERNAME/hyperdata-backend.git
+# Replace YOUR_GITHUB_USERNAME with your GitHub account name
+git clone https://github.com/YOUR_GITHUB_USERNAME/hyperdata-backend.git
 cd hyperdata-backend
 
 # Add the original repository as upstream
-git remote add upstream https://github.com/ORIGINAL_OWNER/hyperdata-backend.git
+git remote add upstream https://github.com/iCog-Labs-Dev/hyperdata-backend.git
 ```
 
 ### 2. Install Dependencies
@@ -102,7 +103,7 @@ npm run start:dev
 - **New Features**: Check issues labeled `enhancement` or `feature request`
 - **Documentation**: Issues labeled `documentation`
 - **Performance**: Issues labeled `performance`
-- **Security**: Follow our [Security Policy](SECURITY.md) for security-related contributions
+- **Security**: Report vulnerabilities privately through [GitHub Security Advisories](https://github.com/iCog-Labs-Dev/hyperdata-backend/security/advisories/new)
 
 ### 2. Create a Branch
 
@@ -450,10 +451,9 @@ Any other context or screenshots
 For security-related contributions:
 
 1. **DO NOT** create public issues for security vulnerabilities
-2. **Follow** our [Security Policy](SECURITY.md)
-3. **Report** vulnerabilities privately to security@mahder-api.com
+2. **Report** vulnerabilities privately through [GitHub Security Advisories](https://github.com/iCog-Labs-Dev/hyperdata-backend/security/advisories/new)
+3. **Coordinate** with maintainers on the disclosure timeline
 4. **Wait** for acknowledgment before proceeding
-5. **Coordinate** with maintainers on disclosure timeline
 
 ## Community and Support
 
