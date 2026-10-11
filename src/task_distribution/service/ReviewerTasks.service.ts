@@ -40,16 +40,9 @@ export class ReviewerTaskService {
    */
   async getAssignedTasks(taskId: string) {
     const tasks: ReviewerTasks[] = await this.reviewerTaskRepository.find({
-      where: { task_id: taskId },
+      where: { task_id: taskId, expire_date: MoreThan(new Date()) },
     });
-    if (tasks) {
-      let assignedDataSets: string[] = [];
-      for (const task of tasks) {
-        assignedDataSets = [...assignedDataSets, ...task.data_set_ids];
-      }
-      return assignedDataSets;
-    }
-    return [];
+    return [...new Set(tasks.flatMap((task) => task.data_set_ids ?? []))];
   }
 
   /**

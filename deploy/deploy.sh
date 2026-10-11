@@ -61,7 +61,7 @@ COMPOSE=(docker compose --project-name hyperdata --env-file "$ENV_FILE" -f "$COM
 
 case "$SERVICE" in
   backend)
-    "${COMPOSE[@]}" up -d --build backend notification frontend
+    "${COMPOSE[@]}" up -d --build backend
     ;;
   frontend)
     "${COMPOSE[@]}" up -d --build frontend

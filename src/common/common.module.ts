@@ -21,6 +21,10 @@ import { AudioService } from './service/Audio.service';
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({
         uri: config.get<string>('RABBITMQ_URI'),
+        channels: {
+          default: { default: true, prefetchCount: 10 },
+          'dataset-actions': { prefetchCount: 1 },
+        },
         exchanges: [
           {
             name: config.get<string>('RABBITMQ_EXCHANGE_NAME') as string,
@@ -33,6 +37,10 @@ import { AudioService } from './service/Audio.service';
           },
         ],
         queues: [
+          {
+            name: `${config.get<string>('DATASET_RABBITMQ_QUEUE_NAME') || 'dataset.queue'}.failed`,
+            options: { durable: true },
+          },
           {
             name: config.get<string>('DATASET_RABBITMQ_QUEUE_NAME') as string,
             options: { durable: true },

@@ -92,7 +92,7 @@ jobs:
           printf '%s\n' "${{ secrets.NETCUP_SSH_PRIVATE_KEY }}" > "$HOME/.ssh/id_ed25519"
           chmod 600 "$HOME/.ssh/id_ed25519"
 
-      - name: Deploy backend and dependent services
+      - name: Deploy backend
         env:
           NETCUP_HOST: ${{ secrets.NETCUP_HOST }}
           NETCUP_PORT: ${{ secrets.NETCUP_PORT || '22' }}
