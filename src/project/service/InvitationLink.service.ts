@@ -12,6 +12,14 @@ import { RoleService } from 'src/auth/service/Role.service';
 import { UserTaskService } from './UserTask.service';
 import { ProjectService } from './Project.service';
 import { TaskService } from './Task.service';
+import {
+  Country,
+  Dialect,
+  Language,
+  Region,
+  Zone,
+} from 'src/base_data/entities';
+import { UserSanitize } from 'src/auth/sanitize';
 @Injectable()
 export class InvitationLinkService {
   constructor(
@@ -68,10 +76,7 @@ export class InvitationLinkService {
       queryOption,
     );
   }
-  async acceptInvitation(
-    invitation_id: string,
-    userData: Partial<User>,
-  ): Promise<User> {
+  async acceptInvitation(invitation_id: string, userData: Partial<User>) {
     const invitationLink = await this.findActiveInvitationLink(invitation_id);
     const role_name = invitationLink.role;
     const role = await this.roleService.findOne({ name: role_name });
@@ -124,7 +129,7 @@ export class InvitationLinkService {
       invitationLink.current_invitations += 1;
       await queryRunner.commitTransaction();
       await this.invitationLinkRepository.save(invitationLink);
-      return user;
+      return UserSanitize.from(user);
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -151,6 +156,32 @@ export class InvitationLinkService {
       throw new BadRequestException('Invitation link has expired');
     }
     return invitationLink;
+  }
+
+  async registrationOptions(invitationId: string) {
+    await this.findOne({ where: { id: invitationId } });
+    // Only the reference fields needed by a valid invitation are exposed.
+    const [countries, regions, zones, languages, dialects] = await Promise.all([
+      this.dataSource
+        .getRepository(Country)
+        .find({ select: { id: true, name: true }, order: { name: 'ASC' } }),
+      this.dataSource.getRepository(Region).find({
+        select: { id: true, name: true, country_id: true },
+        order: { name: 'ASC' },
+      }),
+      this.dataSource.getRepository(Zone).find({
+        select: { id: true, name: true, region_id: true },
+        order: { name: 'ASC' },
+      }),
+      this.dataSource
+        .getRepository(Language)
+        .find({ select: { id: true, name: true }, order: { name: 'ASC' } }),
+      this.dataSource.getRepository(Dialect).find({
+        select: { id: true, name: true, language_id: true },
+        order: { name: 'ASC' },
+      }),
+    ]);
+    return { countries, regions, zones, languages, dialects };
   }
   async findOne(
     queryOption: QueryOptions<InvitationLink>,

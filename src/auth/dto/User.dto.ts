@@ -29,8 +29,10 @@ export class CreateUserDto {
 
   @ApiProperty({ required: false })
   @IsString()
+  @IsOptional()
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @MinLength(9)
-  phone_number: string;
+  phone_number?: string;
 
   @ApiProperty()
   @IsString()
@@ -40,11 +42,6 @@ export class CreateUserDto {
   @ApiProperty()
   @IsEmail()
   email: string;
-
-  @ApiProperty()
-  @IsString()
-  @MinLength(6)
-  password: string;
 
   @ApiProperty({ type: String, example: '2000-01-01' })
   @Transform(({ value }) => new Date(value))

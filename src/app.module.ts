@@ -123,6 +123,10 @@ import configuration from './config/configuration';
         return {
           transport: {
             service: 'gmail',
+            connectionTimeout: 10000,
+            greetingTimeout: 10000,
+            socketTimeout: 20000,
+            dnsTimeout: 10000,
             auth: {
               user: emailUser,
               pass: configService.getOrThrow<string>('EMAIL_PASS'),

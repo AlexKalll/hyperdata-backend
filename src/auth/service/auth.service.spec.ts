@@ -208,6 +208,7 @@ describe('AuthService', () => {
       expect(service.generateToken).toHaveBeenCalledWith(
         'user-1',
         'user@example.com',
+        undefined,
       );
     });
   });
@@ -281,7 +282,9 @@ describe('AuthService', () => {
 
       await expect(service.mobileSignIn(credential)).resolves.toEqual({
         user: {
-          ...user,
+          ...Object.fromEntries(
+            Object.entries(user).filter(([key]) => key !== 'password'),
+          ),
           profile_picture: 'https://cdn.example/mobile',
         },
         access_token: 'access',

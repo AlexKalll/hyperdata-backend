@@ -1,3 +1,6 @@
+import { Allow, IsString, MinLength } from 'class-validator';
+import { OmitType } from '@nestjs/swagger';
+import { CreateUserDto } from 'src/auth/dto/User.dto';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
@@ -8,59 +11,37 @@ export const createInvitationLinkSchema = z.object({
       message: 'Invalid date format',
     })
     .transform((val) => new Date(val)),
-  role: z.enum(['Contributor', 'Reviewer']).optional(),
+  role: z.enum(['Contributor', 'Facilitator', 'Reviewer']).optional(),
   organization_id: z.string().uuid().optional(),
-  max_invitations: z.number().optional(),
+  max_invitations: z.number().int().positive().optional(),
 });
 
 export const updateInvitationLinkSchema = createInvitationLinkSchema.partial();
-export const createUserSchema = z
-  .object({
-    first_name: z.string().min(3),
-    middle_name: z.string().min(3),
-    last_name: z.string().min(3),
-    email: z.string().email(),
-    password: z.string().min(6),
-    birth_date: z
-      .string()
-      .refine((val) => !isNaN(Date.parse(val)), {
-        message: 'Invalid date format',
-      })
-      .transform((val) => new Date(val)),
-    gender: z.enum(['Male', 'Female']),
-    city: z
-      .string()
-      .optional()
-      .transform((e) => (e === '' ? undefined : e)),
-    woreda: z
-      .string()
-      .optional()
-      .transform((e) => (e === '' ? undefined : e)),
-    dialect_id: z
-      .string()
-      .uuid()
-      .optional()
-      .transform((e) => (e === '' ? undefined : e)),
-    language_id: z
-      .string()
-      .uuid()
-      .transform((e) => (e === '' ? undefined : e)),
-    region_id: z
-      .string()
-      .uuid()
-      .optional()
-      .transform((e) => (e === '' ? undefined : e)),
-    zone_id: z
-      .string()
-      .uuid()
-      .optional()
-      .transform((e) => (e === '' ? undefined : e)),
-  })
-  .required();
-export class AcceptInvitationDto extends createZodDto(createUserSchema) {}
+// Invitees choose their own password; the invitation, not the submitted body,
+// determines the role. Reuse the globally validated profile field contract.
+export class AcceptInvitationDto extends OmitType(CreateUserDto, [
+  'role_id',
+] as const) {
+  @IsString()
+  @MinLength(8)
+  password: string;
+}
 export class createInvitationLinkDto extends createZodDto(
   createInvitationLinkSchema,
-) {}
+) {
+  // The global class-validator whitelist runs before the route's Zod pipe.
+  @Allow()
+  expiry_date: Date;
+
+  @Allow()
+  role?: 'Contributor' | 'Facilitator' | 'Reviewer';
+
+  @Allow()
+  organization_id?: string;
+
+  @Allow()
+  max_invitations?: number;
+}
 export class updateInvitationLinkDto extends createZodDto(
   updateInvitationLinkSchema,
 ) {}

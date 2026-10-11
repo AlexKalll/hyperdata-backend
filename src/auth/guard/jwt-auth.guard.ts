@@ -2,6 +2,7 @@ import {
   ExecutionContext,
   Injectable,
   UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
@@ -41,6 +42,18 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       throw new UnauthorizedException('User not found');
     }
 
+    const allowPasswordChange = this.reflector.getAllAndOverride<boolean>(
+      'allowPasswordChange',
+      [context.getHandler(), context.getClass()],
+    );
+    if (
+      (fullUser.must_change_password || user.passwordChangeOnly) &&
+      !allowPasswordChange
+    ) {
+      throw new ForbiddenException(
+        'Change your temporary password before continuing',
+      );
+    }
     request.user = fullUser; // Attach full user data
 
     return true;
