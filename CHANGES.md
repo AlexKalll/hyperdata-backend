@@ -36,6 +36,14 @@ record.
 - Updated `README.md` to reflect the Apache 2.0 license and upstream attribution.
 - Added this `CHANGES.md` file.
 
+## 2026-10-11: Documentation accuracy
+
+- Corrected clone instructions, API documentation URL, and Docker Compose exposure details.
+- Replaced the deleted `SECURITY.md` references with the private GitHub Security Advisory reporting path.
+- Updated Redis guidance for password-authenticated Compose configuration and health checks.
+- Corrected RabbitMQ local access guidance to match the Compose network and loopback-only standalone examples.
+- Removed the obsolete standalone unit-test and security-policy documents as requested.
+
 ## 2026-08-10
 
 ## 2026-09-22: Netcup production deployment baseline

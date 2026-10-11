@@ -61,10 +61,13 @@ graph TD
 
 ```bash
 # Redis Connection
-REDIS_HOST=localhost
+REDIS_HOST=redis
 REDIS_PORT=6379
-REDIS_URL=redis://localhost:6379
+REDIS_PASSWORD=replace_with_a_unique_redis_password
+REDIS_URL=redis://:replace_with_a_unique_redis_password@redis:6379
 ```
+
+These are the Docker Compose settings. For a host process, use `localhost` only when Redis is separately published or installed on the host, and set both `REDIS_PASSWORD` and `REDIS_URL` to match that Redis instance. URL-encode reserved characters in the URL password.
 
 ### Module Setup
 
@@ -674,19 +677,19 @@ const redis = new Redis(redisUrl, {
 
 2. **Memory Issues**
 ```bash
-# Check Redis memory usage
-redis-cli info memory
+# Check Redis memory usage (authenticated)
+REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli info memory
 
 # Check specific key memory usage
-redis-cli memory usage "contrib:task:user123"
+REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli memory usage "contrib:task:user123"
 ```
 
 3. **Queue Stalls**
 ```bash
 # Check queue status
-redis-cli llen "bull:file-upload:waiting"
-redis-cli llen "bull:file-upload:active"
-redis-cli llen "bull:file-upload:failed"
+REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli llen "bull:file-upload:waiting"
+REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli llen "bull:file-upload:active"
+REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli llen "bull:file-upload:failed"
 ```
 
 ### Debug Commands
@@ -694,16 +697,16 @@ redis-cli llen "bull:file-upload:failed"
 **Redis CLI Commands**:
 ```bash
 # List all keys matching pattern
-redis-cli keys "contrib:task:*"
+REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli keys "contrib:task:*"
 
 # Get key TTL
-redis-cli ttl "contrib:task:user123"
+REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ttl "contrib:task:user123"
 
 # Monitor Redis commands
-redis-cli monitor
+REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli monitor
 
 # Check queue contents
-redis-cli lrange "bull:file-upload:waiting" 0 -1
+REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli lrange "bull:file-upload:waiting" 0 -1
 ```
 
 **Application Debug**:
@@ -747,36 +750,24 @@ this.logger.debug(`Cache size: ${JSON.stringify(data).length} bytes`);
 4. **Access Control**: Limit Redis command access
 5. **Regular Updates**: Keep Redis server updated
 
-## Example Docker Compose
+## Docker Compose configuration
+
+The backend's [`docker-compose.yaml`](docker-compose.yaml) is authoritative. Its Redis service requires `REDIS_PASSWORD`, enables AOF persistence, and authenticates its health check. The relevant configuration is:
 
 ```yaml
-version: '3.8'
 services:
   redis:
     image: redis:7-alpine
-    container_name: mahder-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
-    environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-    networks:
-      - mahder-network
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-
-volumes:
-  redis_data:
-
-networks:
-  mahder-network:
-    driver: bridge
 ```
 
 ## Resources
