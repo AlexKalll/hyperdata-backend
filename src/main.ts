@@ -30,7 +30,7 @@ function sanitizeUrl(rawUrl?: string): string {
     return 'not configured';
   }
 
-  return rawUrl.replace(/:\/\/([^:]+):([^@]+)@/, '://$1:***@');
+  return rawUrl.replace(/:\/\/([^:@]*):([^@]+)@/, '://$1:***@');
 }
 
 async function bootstrap() {

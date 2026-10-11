@@ -20,6 +20,7 @@
     "migration:run:prod": "node ./node_modules/typeorm/cli.js migration:run -d dist/database/data-source.js",
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
     "migration:generate": "npm run typeorm -- migration:generate -d src/database/data-source.ts src/database/migrations/migration",
+    "bootstrap-admin": "node dist/database/bootstrap-admin.js",
     "migration:run": "npm run typeorm -- migration:run -d src/database/data-source.ts",
     "seed": "npx typeorm-extension seed:run -- -d src/database/data-source.ts",
     "seed:prod": "node ./node_modules/typeorm-extension/bin/cli.cjs seed:run -- -d dist/database/data-source.js",

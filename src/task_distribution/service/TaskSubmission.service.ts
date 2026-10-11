@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DataSource, In } from 'typeorm';
+import { DataSource, In, QueryRunner } from 'typeorm';
 import { ContributorMicroTaskService } from './ContributorMicroTask.service';
 import { TaskService } from 'src/project/service/Task.service';
 import { UserService } from 'src/auth/service/User.service';
@@ -20,6 +20,7 @@ import { taskTypes, UserTaskStatus } from 'src/utils/constants/Task.constant';
 import { User } from 'src/auth/entities/User.entity';
 import { DataSet } from 'src/data_set/entities/DataSet.entity';
 import { CacheService } from 'src/cache/CacheService.service';
+import { ReviewerTaskService } from './ReviewerTasks.service';
 
 @Injectable()
 export class TaskSubmissionService {
@@ -33,7 +34,24 @@ export class TaskSubmissionService {
     // private readonly userScoreService: UserScoreService,
     private readonly userTaskService: UserTaskService,
     private readonly cacheService: CacheService,
+    private readonly reviewerTaskService: ReviewerTaskService,
   ) {}
+
+  private async assignRetryDataSetsToReviewers(
+    taskId: string,
+    dataSets: DataSet[] | undefined,
+    previousDataSets: DataSet[],
+    queryRunner: QueryRunner,
+  ): Promise<void> {
+    if (!dataSets || dataSets.length === 0) return;
+
+    await this.reviewerTaskService.assignRetryDataSetsToPreviousReviewers(
+      taskId,
+      dataSets.map(({ id, micro_task_id }) => ({ id, micro_task_id })),
+      previousDataSets,
+      queryRunner,
+    );
+  }
 
   async submitMultipleTextDatasets(
     user_id: string,
@@ -72,7 +90,14 @@ export class TaskSubmissionService {
     );
     const contributorSubmittedDataSets = await this.dataSetService.findAll({
       where: { micro_task_id: In(micro_task_ids), contributor_id: user_id },
-      select: { id: true, micro_task_id: true, status: true },
+      select: {
+        id: true,
+        micro_task_id: true,
+        status: true,
+        reviewer_id: true,
+        created_date: true,
+      },
+      order: { created_date: 'DESC' },
     });
     const task_type = task.taskType.task_type || '';
     if (
@@ -132,6 +157,12 @@ export class TaskSubmissionService {
             user_id,
             queryRunner,
           );
+        await this.assignRetryDataSetsToReviewers(
+          task_id,
+          datasets_created,
+          contributorSubmittedDataSets,
+          queryRunner,
+        );
         await this.taskService.updateOrCreateUserToPending(
           {
             task_id: task_id,
@@ -201,6 +232,12 @@ export class TaskSubmissionService {
             user_id,
             queryRunner,
           );
+        await this.assignRetryDataSetsToReviewers(
+          task_id,
+          datasetsCreated,
+          contributorSubmittedDataSets,
+          queryRunner,
+        );
         const contributorMicroTasks =
           await this.contributorMicroTaskService.findOne({
             where: { contributor_id: user_id, task_id: task_id },
@@ -337,7 +374,14 @@ export class TaskSubmissionService {
     );
     const contributorSubmittedDataSets = await this.dataSetService.findAll({
       where: { micro_task_id: In(micro_task_ids), contributor_id: user_id },
-      select: { id: true, micro_task_id: true, status: true },
+      select: {
+        id: true,
+        micro_task_id: true,
+        status: true,
+        reviewer_id: true,
+        created_date: true,
+      },
+      order: { created_date: 'DESC' },
     });
     await Promise.all(
       datasets.map((item) =>
@@ -386,6 +430,12 @@ export class TaskSubmissionService {
             user_id,
             queryRunner,
           );
+        await this.assignRetryDataSetsToReviewers(
+          task_id,
+          savedDataSets,
+          contributorSubmittedDataSets,
+          queryRunner,
+        );
         await this.taskService.updateOrCreateUserToPending(
           {
             task_id: task_id,
@@ -453,6 +503,12 @@ export class TaskSubmissionService {
             user_id,
             queryRunner,
           );
+        await this.assignRetryDataSetsToReviewers(
+          task_id,
+          savedDataSets,
+          contributorSubmittedDataSets,
+          queryRunner,
+        );
         const contributorMicroTasks =
           await this.contributorMicroTaskService.findOne({
             where: { contributor_id: user_id, task_id: task_id },

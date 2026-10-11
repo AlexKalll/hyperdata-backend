@@ -1,6 +1,6 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { ReviewerTasks } from '../enitities/ReviewerTasks.entity';
-import { LessThan, MoreThan, QueryRunner, Repository } from 'typeorm';
+import { In, LessThan, MoreThan, QueryRunner, Repository } from 'typeorm';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Task } from 'src/project/entities/Task.entity';
@@ -104,6 +104,80 @@ export class ReviewerTaskService {
   }
 
   /**
+   * Assigns retry submissions to the reviewer who handled the previous
+   * rejected attempt when that reviewer still has an active assignment for
+   * the task. This keeps retries in the same review queue without requiring
+   * the project manager to redistribute the whole task.
+   *
+   * If the previous assignment has expired or no longer exists, the dataset
+   * is left unassigned so the normal project-manager distribution flow can
+   * handle it.
+   */
+  async assignRetryDataSetsToPreviousReviewers(
+    taskId: string,
+    dataSets: Pick<DataSet, 'id' | 'micro_task_id'>[],
+    previousDataSets: Pick<
+      DataSet,
+      'micro_task_id' | 'status' | 'reviewer_id'
+    >[],
+    queryRunner: QueryRunner,
+  ): Promise<void> {
+    const previousReviewerByMicroTask = new Map<string, string>();
+    for (const previousDataSet of previousDataSets) {
+      if (
+        (previousDataSet.status === 'Rejected' ||
+          previousDataSet.status === 'Flagged') &&
+        previousDataSet.reviewer_id &&
+        !previousReviewerByMicroTask.has(previousDataSet.micro_task_id)
+      ) {
+        previousReviewerByMicroTask.set(
+          previousDataSet.micro_task_id,
+          previousDataSet.reviewer_id,
+        );
+      }
+    }
+
+    const dataSetsByReviewer = new Map<string, string[]>();
+    for (const dataSet of dataSets) {
+      const reviewerId = previousReviewerByMicroTask.get(dataSet.micro_task_id);
+      if (!reviewerId || !dataSet.id) continue;
+
+      const reviewerDataSetIds = dataSetsByReviewer.get(reviewerId) || [];
+      reviewerDataSetIds.push(dataSet.id);
+      dataSetsByReviewer.set(reviewerId, reviewerDataSetIds);
+    }
+
+    const manager = queryRunner.manager;
+    for (const [reviewerId, dataSetIds] of dataSetsByReviewer) {
+      const reviewerTask = await manager
+        .createQueryBuilder(ReviewerTasks, 'reviewer_task')
+        .setLock('pessimistic_write')
+        .where('reviewer_task.reviewer_id = :reviewerId', { reviewerId })
+        .andWhere('reviewer_task.task_id = :taskId', { taskId })
+        .andWhere('reviewer_task.expire_date > NOW()')
+        .getOne();
+
+      if (!reviewerTask) continue;
+
+      const assignedDataSetIds = reviewerTask.data_set_ids || [];
+      const updatedDataSetIds = [
+        ...new Set([...assignedDataSetIds, ...dataSetIds]),
+      ];
+      await manager.update(
+        ReviewerTasks,
+        { id: reviewerTask.id },
+        { data_set_ids: updatedDataSetIds },
+      );
+
+      await Promise.all(
+        dataSetIds.map((dataSetId) =>
+          manager.update(DataSet, dataSetId, { reviewer_id: reviewerId }),
+        ),
+      );
+    }
+  }
+
+  /**
    * Distributes pending task data sets among reviewers while respecting
    * reviewer limits, previously reviewed data, and existing active assignments.
    *
@@ -149,8 +223,13 @@ export class ReviewerTaskService {
         expire_date: MoreThan(new Date()),
       },
     });
-    let reviewerAssignedDataSets: ReviewerTasks[] = [];
-    reviewerAssignedDataSets = [...allReviewerAssignedDataSets];
+    const eligibleReviewerIds = new Set(reviewerIds);
+    const invalidReviewerAssignments = allReviewerAssignedDataSets.filter(
+      (assignment) => !eligibleReviewerIds.has(assignment.reviewer_id),
+    );
+    const reviewerAssignedDataSets = allReviewerAssignedDataSets.filter(
+      (assignment) => eligibleReviewerIds.has(assignment.reviewer_id),
+    );
     for (let index = 0; index < reviewerIds.length; index++) {
       if (
         !reviewerAssignedDataSets.find(
@@ -170,7 +249,9 @@ export class ReviewerTaskService {
       }
     }
 
-    const allAssignedDataSets = allReviewerAssignedDataSets
+    // Ignore assignments owned by users who are no longer active reviewers for
+    // this task. Their data sets must become eligible for reassignment.
+    const allAssignedDataSets = reviewerAssignedDataSets
       .map((r) => r.data_set_ids)
       .flat();
     const unAssignedDataSets = allPendingDataSetIds.filter(
@@ -200,24 +281,29 @@ export class ReviewerTaskService {
         start + canBeAssigned,
       );
       const newDataSetIds = unAssignedDataSets.slice(start, maxCutIndex);
-      start += maxCutIndex;
+      start = maxCutIndex;
       const dataSetIds = [
         ...new Set([...reviewerAssignedDataSet.data_set_ids, ...newDataSetIds]),
       ];
       reviewerAssignedDataSet.data_set_ids = dataSetIds;
 
-      const message = `You have been assigned ${newDataSetIds.length} submissions to review  on task ${task.name}. Please login to your account to start working on it.`;
+      if (newDataSetIds.length > 0) {
+        const message = `You have been assigned ${newDataSetIds.length} submissions to review on task ${task.name}. Please login to your account to start working on it.`;
+        notifications.push({
+          user_id: reviewerAssignedDataSet.reviewer_id,
+          message,
+        });
+      }
       if (start >= unAssignedDataSets.length) break;
-
-      notifications.push({
-        user_id: reviewerAssignedDataSet.reviewer_id,
-        message: message,
+    }
+    // Keep empty active assignments. A reviewer may need to receive a retry
+    // directly after a rejected submission without another PM distribution.
+    await this.reviewerTaskRepository.save(reviewerAssignedDataSets);
+    if (invalidReviewerAssignments.length > 0) {
+      await this.reviewerTaskRepository.delete({
+        id: In(invalidReviewerAssignments.map((assignment) => assignment.id)),
       });
     }
-    reviewerAssignedDataSets = reviewerAssignedDataSets.filter(
-      (rT) => rT.data_set_ids.length > 0,
-    );
-    await this.reviewerTaskRepository.save(reviewerAssignedDataSets);
     await Promise.all(
       notifications.map(async (notification) => {
         await this.notificationService.create({

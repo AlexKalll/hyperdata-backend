@@ -190,8 +190,8 @@ The system is designed around projects, tasks, micro-tasks, contributors, review
 1. Clone the repository.
 
    ```bash
-   git clone <repository-url>
-   cd mahder-backend
+   git clone https://github.com/iCog-Labs-Dev/hyperdata-backend.git
+   cd hyperdata-backend
    ```
 
 2. Install dependencies.
@@ -212,54 +212,9 @@ The system is designed around projects, tasks, micro-tasks, contributors, review
    Copy-Item .env.example .env
    ```
 
-4. Update `.env` for your local services.
+4. Configure `.env` using `.env.example` as the variable reference. The example is set up for Docker Compose, so container-to-container URLs use service names such as `postgres`, `redis`, `rabbitmq`, and `minio`. Replace every placeholder secret with a unique local value; do not reuse production credentials.
 
-   Required configuration includes:
-
-   ```env
-   PORT=3000
-   NODE_ENV=development
-
-   JWT_SECRET=your_jwt_secret
-   JWT_REFRESH_SECRET=your_jwt_refresh_secret
-   JWT_EXPIRES_IN=24h
-   JWT_REFRESH_EXPIRES_IN=7d
-
-   DATABASE_URL=postgresql://postgres:postgres123@localhost:5433/mahder_db
-   DATABASE_SCHEMA=public
-
-   REDIS_HOST=localhost
-   REDIS_PORT=6379
-   REDIS_URL=redis://localhost:6379
-
-   RABBITMQ_URI=amqp://guest:guest@localhost:5672
-   RABBITMQ_QUEUE_NAME=notifications.queue
-   RABBITMQ_EXCHANGE_NAME=notifications.exchange
-   RABBITMQ_EXCHANGE_TYPE=topic
-   RABBITMQ_ROUTING_KEY=notification.created
-   RABBITMQ_DURABLE=true
-
-   DATASET_RABBITMQ_EXCHANGE_NAME=dataset.exchange
-   DATASET_RABBITMQ_QUEUE_NAME=dataset.queue
-   DATASET_RABBITMQ_ROUTING_KEY=dataset.action
-
-   SMS_BASE_URL=https://sms.com/api
-   SMS_IDENTIFIER=your_SMS_IDENTIFIER
-   SMS_SENDER=YourSenderName
-   SMS_TOKEN=your_sms_token
-
-   MINIO_ENDPOINT=http://localhost:9000
-   MINIO_ROOT_USER=minio_root_admin
-   MINIO_ROOT_PASSWORD=replace_with_a_long_random_root_password
-   MINIO_ACCESS_KEY=mahder_app_storage
-   MINIO_SECRET_KEY=replace_with_a_long_random_app_password
-   MINIO_BUCKET=mahder-bucket
-   MINIO_S3_FORCE_PATH_STYLE=true
-   MINIO_SIGNATURE_VERSION=v4
-
-   EMAIL_USER=your_email@example.com
-   EMAIL_PASS=your_email_app_password
-   ```
+   If you run the API directly on your host with `npm run start:dev`, configure its database, Redis, RabbitMQ, and MinIO URLs to point to services reachable from the host. The Compose file does not publish PostgreSQL, Redis, or RabbitMQ ports to the host.
 
 5. Run migrations and seeds.
 
@@ -292,7 +247,7 @@ npm run start:prod
 The API uses the global prefix `/api`.
 
 - API base URL: `http://localhost:3000/api`
-- Swagger UI: `http://localhost:3000/doc`
+- Swagger UI: `http://localhost:3000/api/docs`
 - Health check: `http://localhost:3000/api/health`
 - Bull Board: `http://localhost:3000/admin/queues`
 
@@ -305,6 +260,7 @@ Docker Compose starts:
 - `rabbitmq`
 - `minio`
 - `minio-init`
+- `adminer`
 - `app`
 
 Start the full stack:
@@ -331,11 +287,11 @@ Remove containers and volumes:
 docker compose down -v
 ```
 
-RabbitMQ management UI is available at `http://localhost:15672` with the default local credentials `guest / guest`.
+The Compose file does not publish RabbitMQ's management UI or its AMQP port to the host. Services in the Compose network use the `rabbitmq` hostname.
 
 MinIO is available to containers at `http://minio:9000`. For local host access, the API and console bind to `127.0.0.1:9000` and `127.0.0.1:9001` by default. The `minio-init` job creates the configured bucket and app-scoped storage user before the API starts.
 
-See [RUN_BACKEND.md](RUN_BACKEND.md) for the detailed Docker runbook.
+PostgreSQL, Redis, and RabbitMQ are available only to containers on the Compose network by default. MinIO API and console ports are bound to loopback; Adminer is published on port `5555`.
 
 ## Database and Seeds
 
@@ -413,7 +369,7 @@ All routes are served under `/api`.
 | Cache | `/cache` | Cache clearing |
 | Health | `/health` | Application health |
 
-For exact request and response shapes, use Swagger at `/doc`.
+For exact request and response shapes, use Swagger at `/api/docs`.
 
 ## Test Accounts
 
@@ -423,6 +379,7 @@ In `.env`, enable the demo users:
 ```env
 NODE_ENV=development
 ENABLE_DEMO_USERS_SEED=true
+DEMO_USERS_PASSWORD=<private-password-at-least-8-characters>
 ```
 
 **Native (without Docker):** with dependencies installed and `DATABASE_URL` pointing to a database reachable from your host:
@@ -437,21 +394,18 @@ npm run seed
 ```bash
 docker compose up -d --build
 docker compose exec -T app npm run migration:run:prod
-docker compose exec -T -e NODE_ENV=development -e ENABLE_DEMO_USERS_SEED=true app npm run seed:prod
+docker compose exec -T \
+  -e NODE_ENV=development \
+  -e ENABLE_DEMO_USERS_SEED=true \
+  -e DEMO_USERS_PASSWORD="$DEMO_USERS_PASSWORD" \
+  app npm run seed:prod
 ```
 
-All demo accounts use password `12345678`:
-
-| Role | Accounts |
-| --- | --- |
-| SuperAdmin | `super@gmail.com`, `super1@gmail.com` |
-| ProjectManager | `proj@gmail.com`, `proj1@gmail.com` |
-| Facilitator | `faci@gmail.com`, `faci1@gmail.com` |
-| Reviewer | `rev@gmail.com`, `rev2@gmail.com` |
-| Contributor (mobile) | `cont@gmail.com`, `cont1@gmail.com` |
-
-For mobile login, enter `123456789` or `234567890` in the phone field; the app adds `+251`.
-The seed creates or updates demo profiles, but leaves project/task creation and assignment to the UI.
+The seed uses the private `DEMO_USERS_PASSWORD` environment value for local demo
+accounts. Read account details from the local seed output or development database;
+do not copy live account identifiers or passwords into documentation. The seed
+creates or updates demo profiles, but leaves project/task creation and assignment
+to the UI.
 Never enable demo seeding against a production database.
 
 ## Operational Notes
@@ -468,7 +422,7 @@ Never enable demo seeding against a production database.
 
 - Confirm PostgreSQL is running.
 - Confirm `DATABASE_URL` points to the right host and port.
-- For Docker Compose, use `postgres` as the host inside `.env`; for host-machine local development against the Compose database, use `localhost:5433`.
+- For Docker Compose, use `postgres` as the host inside the API container. PostgreSQL is not published to the host by the development Compose file.
 
 ### Redis Connection Issues
 
@@ -481,7 +435,7 @@ Never enable demo seeding against a production database.
 - Confirm RabbitMQ is running.
 - Confirm `RABBITMQ_URI`.
 - For Docker Compose, use `rabbitmq` as the host inside containers.
-- RabbitMQ management is available at `http://localhost:15672`.
+- The development Compose file does not publish RabbitMQ's management UI or AMQP port to the host.
 
 ### File Upload Issues
 
@@ -504,7 +458,7 @@ Never enable demo seeding against a production database.
 4. Run linting and tests.
 5. Open a pull request.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and [SECURITY.md](SECURITY.md) for project policies.
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for project policies. Report security vulnerabilities privately through [GitHub Security Advisories](https://github.com/iCog-Labs-Dev/hyperdata-backend/security/advisories/new).
 
 ## License & Attribution
 

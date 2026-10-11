@@ -36,7 +36,30 @@ record.
 - Updated `README.md` to reflect the Apache 2.0 license and upstream attribution.
 - Added this `CHANGES.md` file.
 
+## 2026-10-11: Documentation accuracy
+
+- Corrected clone instructions, API documentation URL, and Docker Compose exposure details.
+- Replaced the deleted `SECURITY.md` references with the private GitHub Security Advisory reporting path.
+- Updated Redis guidance for password-authenticated Compose configuration and health checks.
+- Corrected RabbitMQ local access guidance to match the Compose network and loopback-only standalone examples.
+- Removed the obsolete standalone unit-test and security-policy documents as requested.
+
 ## 2026-08-10
+
+## 2026-09-22: Netcup production deployment baseline
+
+- Promoted the tested backend changes to the default `main` branch.
+- Added separate private and public MinIO S3 clients so generated signed URLs can use a public HTTPS storage hostname while uploads remain internal.
+- Added the guarded `bootstrap-admin` command for creating or updating the first SuperAdmin without enabling demo-user seeding.
+- Added the production deployment baseline and isolated Compose/Caddy integration files under `deploy/`.
+
+## 2026-09-23: Host Caddy integration
+
+- Published the frontend, backend API, and MinIO API only on loopback ports so the
+  existing host-level Caddy service can proxy them without exposing internal
+  services directly.
+- Updated the Caddy route example to target those loopback ports while preserving
+  the existing HRM and iCog-Labs routes.
 
 ### Authorization hardening
 - Restricted blog mutations and contact-submission staff access to administrators,
@@ -223,6 +246,159 @@ record.
   submits a test text dataset, preventing the `UserTask` insert from failing on
   its non-null role column.
 - Added focused regression coverage for the test text submission path.
+
+## 2026-10-06 - Reviewer retry continuity
+
+### Task distribution
+
+- Automatically attach contributor retry submissions to the active reviewer
+  assignment that handled the previous rejected attempt, avoiding a second
+  project-manager distribution for normal retries.
+- Preserve empty active reviewer assignment records so they remain available
+  for future retries; expired or unavailable assignments still fall back to
+  the existing manual reviewer distribution flow.
+
+## 2026-09-23 - Showcase seed identity alignment
+
+### Seed and test data
+
+- Aligned the guarded demo-user seed with the six current showcase accounts:
+  `admin@gmail.com`, `pm@gmail.com`, `faci@gmail.com`, `rev@gmail.com`,
+  `cont1@gmail.com`, and `cont2@gmail.com`.
+- Removed obsolete showcase email and phone definitions from the seed while
+  retaining the existing wallet/score preservation behavior for contributors
+  and reviewers.
+- Added a stable-national-ID email migration so rerunning the seed across the
+  old-to-new showcase naming change preserves existing demo user IDs.
+- Removed the hard-coded demo password and require the server/local environment
+  to provide `DEMO_USERS_PASSWORD` when guarded demo seeding is enabled.
+
+## 2026-09-24 - Redistribution cache consistency
+
+### Task distribution
+
+- Clear affected contributors' task-list and task-detail Redis entries only
+  after a redistribution transaction commits, so reassigned microtasks appear
+  immediately without exposing rolled-back data.
+- Added regression coverage proving cache invalidation follows commits and is
+  skipped after transaction rollbacks.
+- Preserve dialect and region descriptions in paginated reference-data
+  responses so frontend edit forms can repopulate all supported DTO fields.
+
+## 2026-09-24 - Reviewer assignment recovery
+
+### Task distribution
+
+- Load active task members with the `Reviewer` membership directly before
+  distributing pending submissions.
+- Reclaim submissions from active reviewer-assignment rows owned by users who
+  are not eligible reviewers for the task, then assign them to valid reviewers.
+- Corrected the multi-reviewer distribution cursor so no pending submissions
+  are skipped, and notify reviewers even when the final assignment consumes the
+  remaining submissions.
+- Added focused regression coverage for reviewer selection, stale-assignment
+  recovery, complete multi-reviewer allocation, and final-batch notifications.
+
+### Documentation
+
+- Added an illustrated E2E stabilization report, copy-ready PR details, and the
+  credential-free Netcup showcase operations runbook.
+
+## 2026-09-24 - Facilitator submissions and retry recovery
+
+- Accepted class-validator metadata for facilitator contributor-submission
+  pagination queries so the global strict validation pipe no longer rejects
+  valid `page`, `limit`, and `contributor_id` parameters.
+- Preserved the contributor's recorded attempt count when a reviewer rejects a
+  cached submission, keeping a task with available retries recordable again.
+
+## 2026-09-25 - Administration workflow fixes
+
+- Added class-validator metadata for country, dialect, and sector request DTOs
+  so valid fields survive the global strict validation pipe.
+- Seeded six default African countries through an idempotent migration and
+  corrected the corresponding ISO alpha-3 codes in the reusable seed.
+- Excluded existing task members from every branch of unassigned-user searches.
+- Resolved task instruction deletion by the task ID used in the public route.
+- Sanitized password-only Redis URLs in startup logs.
+
+## 2026-09-27 - Reference-data administration fixes
+
+- Added global-validation allowlist metadata to organization and zone Zod DTOs so
+  valid create/update fields reach their route-level Zod validation.
+- Included sector descriptions in sanitized list responses for the admin table.
+
+## 2026-09-27 - Contributor retry recovery
+
+- Marked a rejected submission retryable when the contributor still has the
+  configured retry available, including the one-retry configuration.
+- Kept Redis retry metadata consistent with the database submission limit.
+- Aligned the contributor submission detail response with the same retry-count
+  semantics.
+
+## 2026-10-06 - MinIO container compatibility
+
+- Replaced unavailable Docker Hub/Quay MinIO image references with pinned
+  Bitnami Legacy MinIO and MinIO Client images that retain the existing S3 and
+  admin APIs.
+- Kept the image references in reviewed Compose files instead of environment
+  files, preventing accidental storage-image overrides.
+- Preserved the existing `/data` volume layout and ran MinIO as root to retain
+  access to data owned by the previous container image.
+
+## 2026-10-09 - SMS OTP provider setup
+
+- Configured the ignored local environment for AfroMessage's API and the
+  subscribed identifier; the account has no approved sender name yet.
+- Removed plaintext OTP logging and encoded SMS parameters with Axios.
+- Classified provider errors without logging raw responses, OTPs or API tokens.
+- Made the optional sender name conditional and allowed a blank sender in
+  backend configuration.
+
+## 2026-10-10 - SMS Ethiopia OTP provider
+
+- Added a selectable SMS Ethiopia adapter using its HTTPS send API and private
+  `KEY` header, normalizing local mobile signup numbers while keeping
+  AfroMessage as the default provider.
+- Required the selected provider's credentials at startup and accepted OTP
+  issuance only when the selected provider confirms the send request.
+- Prevented failed password-reset SMS requests from issuing unusable OTPs.
+
+## 2026-10-10 - Contributor onboarding reference data
+
+- Allowed verified, inactive contributors to read only the language and dialect
+  lists using their short-lived onboarding token; other protected endpoints keep
+  their existing active-user requirement.
+- Added an idempotent Ethiopian-language seed with dialect choices for all five
+  onboarding languages, without overwriting existing admin-managed entries.
+
+## 2026-10-10 - Language administration validation
+
+- Allowed the Zod-backed language name/code fields through the global DTO
+  whitelist and validated language edits with the same Zod schema as creates.
+
+## 2026-10-10 - Transactional email quality
+
+- Added branded HTML and plain-text templates for password-reset codes, project
+  and task assignments, and task-flag notices.
+- Configured the Gmail sender from `EMAIL_USER` and made frontend sign-in links
+  use the required `FRONTEND_URL` environment variable.
+- Replaced predictable temporary assignment passwords with cryptographically
+  generated values and prevented duplicate assignment notices.
+- Fixed task flagging to persist the inactive/flagged state and send its notice.
+
+## 2026-10-11 - Data Mahder email branding
+
+- Updated the sender display, email headers, subjects, message headings, calls to
+  action, and closing to use “Data Mahder”.
+- Added the selected low-resource-language subtitle beneath the email wordmark
+  and removed the redundant content heading above the greeting.
+- Removed the automated/no-reply footer from transactional email templates.
+
+## 2026-10-11 - Profile update compatibility
+
+- Accepted optional email addresses on self-service profile updates and aligned
+  profile clients with the strict DTO field allowlist.
 
 ## How to record future changes
 

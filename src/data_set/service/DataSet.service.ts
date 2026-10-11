@@ -109,9 +109,9 @@ export class DataSetService {
     }[],
     contributor_id: string,
     queryRunner: QueryRunner,
-  ): Promise<void> {
+  ): Promise<DataSet[]> {
     if (dataSets.length === 0) {
-      return;
+      return [];
     }
     const entities = dataSets.map((item, index) => ({
       micro_task_id: item.micro_task_id,
@@ -123,7 +123,7 @@ export class DataSetService {
       type: DataSetType.TEXT,
       code: 'DAT-' + crypto.randomUUID().slice(0, 8),
     }));
-    await queryRunner.manager.save(DataSet, entities);
+    return await queryRunner.manager.save(DataSet, entities);
   }
   /**
    * Creates multiple audio data sets in the database.
@@ -1243,9 +1243,12 @@ export class DataSetService {
         dataSet.status === DataSetStatus.PENDING
       );
     });
-    const hasReachedMaxRetry =
-      microTask.dataSets.length >=
-      microTask.task.taskRequirement.max_retry_per_task;
+    // max_retry_per_task counts retries after the initial submission. The
+    // stored dataset count therefore includes the initial attempt.
+    const retriesUsed = Math.max(microTask.dataSets.length - 1, 0);
+    const canRetry =
+      !hasApprovedOrPendingDatasets &&
+      retriesUsed < microTask.task.taskRequirement.max_retry_per_task;
     if (microTask.task.taskType.task_type == 'text-audio') {
       microTask.dataSets = await this.fileService.getPreSignedDatasets(
         microTask.dataSets,
@@ -1258,7 +1261,7 @@ export class DataSetService {
       ),
       current_retry: microTask.dataSets.length,
       allowed_retry: microTask.task.taskRequirement.max_retry_per_task,
-      can_retry: hasApprovedOrPendingDatasets ? false : hasReachedMaxRetry,
+      can_retry: canRetry,
     };
   }
 }

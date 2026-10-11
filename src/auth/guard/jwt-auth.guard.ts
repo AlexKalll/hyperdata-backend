@@ -6,6 +6,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { UserService } from 'src/auth/service/User.service';
+import { ALLOW_ONBOARDING_READ_KEY } from '../decorators/allow-onboarding-read.decorator';
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
   constructor(
@@ -29,7 +30,14 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       where: { id: user.id },
       relations: { role: true },
     });
-    if (!fullUser || !fullUser.is_active) {
+    const allowOnboardingRead = this.reflector.getAllAndOverride<boolean>(
+      ALLOW_ONBOARDING_READ_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+    if (
+      !fullUser ||
+      (!fullUser.is_active && !(allowOnboardingRead && user.onboarding))
+    ) {
       throw new UnauthorizedException('User not found');
     }
 

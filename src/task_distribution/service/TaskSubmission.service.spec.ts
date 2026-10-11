@@ -44,6 +44,7 @@ describe.each(['text', 'audio'] as const)('%s submissions', (kind) => {
     createMultipleAudioDataSet: jest.Mock;
   };
   let contributorTasks: { findOne: jest.Mock; update: jest.Mock };
+  let reviewerTasks: { assignRetryDataSetsToPreviousReviewers: jest.Mock };
   let taskService: {
     findOne: jest.Mock;
     updateOrCreateUserToPending: jest.Mock;
@@ -107,6 +108,9 @@ describe.each(['text', 'audio'] as const)('%s submissions', (kind) => {
       findOne: jest.fn().mockImplementation(async () => assignment),
       update: jest.fn(),
     };
+    reviewerTasks = {
+      assignRetryDataSetsToPreviousReviewers: jest.fn(),
+    };
     taskService = {
       findOne: jest.fn().mockResolvedValue(task),
       updateOrCreateUserToPending: jest.fn(),
@@ -133,6 +137,7 @@ describe.each(['text', 'audio'] as const)('%s submissions', (kind) => {
       } as any,
       { findOneOrCreate: jest.fn() } as any,
       { clearContributorTaskCache: jest.fn() } as any,
+      reviewerTasks as any,
     );
   });
 

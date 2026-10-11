@@ -26,6 +26,7 @@ import { CreateDialectDto, UpdateDialectDto } from '../dto/Dialect.dto';
 import { PaginationDto } from 'src/common/dto/Pagination.dto';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
+import { AllowOnboardingRead } from 'src/auth/decorators/allow-onboarding-read.decorator';
 import { RolesGuard } from 'src/auth/guard/role.guard';
 import { DialectSanitized } from '../sanitize';
 import { PaginatedResult } from 'src/utils/paginate.util';
@@ -79,6 +80,8 @@ export class DialectController {
     };
   }
   @Get('all')
+  @AllowOnboardingRead()
+  @ApiBearerAuth()
   @ApiQuery({
     name: 'search',
     required: false,
@@ -89,6 +92,8 @@ export class DialectController {
     return this.dialectService.findMany(query);
   }
   @Get('language/:language_id')
+  @AllowOnboardingRead()
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get a dialect by ID' })
   async findAllByLanguage(@Param('language_id') language_id: string) {
     return this.dialectService.findMany({ language_id });

@@ -1,3 +1,4 @@
+import { Allow } from 'class-validator';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
@@ -11,7 +12,31 @@ const updateOrganizationSchema = createOrganizationSchema.partial();
 
 export class CreateOrganizationDto extends createZodDto(
   createOrganizationSchema,
-) {}
+) {
+  @Allow()
+  name: string;
+
+  @Allow()
+  email: string;
+
+  @Allow()
+  phone?: string;
+
+  @Allow()
+  address?: string;
+}
 export class UpdateOrganizationDto extends createZodDto(
   updateOrganizationSchema,
-) {}
+) {
+  @Allow()
+  name?: string;
+
+  @Allow()
+  email?: string;
+
+  @Allow()
+  phone?: string;
+
+  @Allow()
+  address?: string;
+}

@@ -1,6 +1,7 @@
 import { DataSource, Repository } from 'typeorm';
 import { Seeder } from 'typeorm-extension';
 import bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
 import {
   Country,
   Dialect,
@@ -13,7 +14,6 @@ import { User } from '../../auth/entities/User.entity';
 import { UserScore } from '../../auth/entities/UserScore.entity';
 import { Wallet } from '../../finance/entities/Wallet.entity';
 
-const DEMO_PASSWORD = '12345678';
 const AMHARIC_LANGUAGE = { name: 'Amharic', code: 'am' };
 const AMHARIC_DIALECT = 'Addis Ababa Amharic';
 const ETHIOPIA = { name: 'Ethiopia', code: 'ETH', continent: 'Africa' };
@@ -34,33 +34,33 @@ type DemoUserDefinition = {
 
 export const DEMO_USERS: DemoUserDefinition[] = [
   {
-    email: 'super@gmail.com',
+    email: 'admin@gmail.com',
     first_name: 'SuperAdmin',
     middle_name: 'Demo',
     last_name: 'One',
-    phone_number: '+251911000001',
+    phone_number: '',
     national_id: 'E2E-SUPER-001',
     role: 'SuperAdmin',
     birth_date: '1985-01-15',
     gender: 'Male',
   },
   {
-    email: 'super1@gmail.com',
-    first_name: 'SuperAdmin',
+    email: 'pm@gmail.com',
+    first_name: 'ProjectManager',
     middle_name: 'Demo',
-    last_name: 'Two',
-    phone_number: '+251911000002',
-    national_id: 'E2E-SUPER-002',
-    role: 'SuperAdmin',
-    birth_date: '1986-02-15',
-    gender: 'Female',
+    last_name: 'One',
+    phone_number: '+251900000102',
+    national_id: 'E2E-PM-001',
+    role: 'ProjectManager',
+    birth_date: '1987-08-15',
+    gender: 'Male',
   },
   {
     email: 'faci@gmail.com',
     first_name: 'Facilitator',
     middle_name: 'Demo',
     last_name: 'One',
-    phone_number: '+251911000003',
+    phone_number: '+251900000103',
     national_id: 'E2E-FACI-001',
     role: 'Facilitator',
     birth_date: '1988-03-15',
@@ -71,25 +71,14 @@ export const DEMO_USERS: DemoUserDefinition[] = [
     first_name: 'Reviewer',
     middle_name: 'Demo',
     last_name: 'One',
-    phone_number: '+251911000004',
+    phone_number: '+251345678900',
     national_id: 'E2E-REVIEWER-001',
     role: 'Reviewer',
     birth_date: '1990-04-15',
     gender: 'Female',
   },
   {
-    email: 'rev2@gmail.com',
-    first_name: 'Reviewer',
-    middle_name: 'Demo',
-    last_name: 'Two',
-    phone_number: '+251911000005',
-    national_id: 'E2E-REVIEWER-002',
-    role: 'Reviewer',
-    birth_date: '1991-05-15',
-    gender: 'Male',
-  },
-  {
-    email: 'cont@gmail.com',
+    email: 'cont1@gmail.com',
     first_name: 'Contributor',
     middle_name: 'Demo',
     last_name: 'One',
@@ -100,7 +89,7 @@ export const DEMO_USERS: DemoUserDefinition[] = [
     gender: 'Male',
   },
   {
-    email: 'cont1@gmail.com',
+    email: 'cont2@gmail.com',
     first_name: 'Contributor',
     middle_name: 'Demo',
     last_name: 'Two',
@@ -108,39 +97,6 @@ export const DEMO_USERS: DemoUserDefinition[] = [
     national_id: 'E2E-CONT-002',
     role: 'Contributor',
     birth_date: '1996-07-15',
-    gender: 'Female',
-  },
-  {
-    email: 'proj@gmail.com',
-    first_name: 'ProjectManager',
-    middle_name: 'Demo',
-    last_name: 'One',
-    phone_number: '+251911000006',
-    national_id: 'E2E-PM-001',
-    role: 'ProjectManager',
-    birth_date: '1987-08-15',
-    gender: 'Male',
-  },
-  {
-    email: 'proj1@gmail.com',
-    first_name: 'ProjectManager',
-    middle_name: 'Demo',
-    last_name: 'Two',
-    phone_number: '+251911000007',
-    national_id: 'E2E-PM-002',
-    role: 'ProjectManager',
-    birth_date: '1989-09-15',
-    gender: 'Female',
-  },
-  {
-    email: 'faci1@gmail.com',
-    first_name: 'Facilitator',
-    middle_name: 'Demo',
-    last_name: 'Two',
-    phone_number: '+251911000008',
-    national_id: 'E2E-FACI-002',
-    role: 'Facilitator',
-    birth_date: '1992-10-15',
     gender: 'Female',
   },
 ];
@@ -277,6 +233,53 @@ async function ensureDemoUser(
   return { user, created: true };
 }
 
+/**
+ * Move renamed showcase accounts without changing their stable demo identity.
+ *
+ * The previous local fixture used the same E2E national IDs with longer email
+ * aliases. A two-pass email swap avoids unique-key conflicts when this seed is
+ * rerun against that database, while refusing to rename unrelated users.
+ */
+async function migrateDemoUserEmails(repository: Repository<User>) {
+  const definitionsByNationalId = new Map(
+    DEMO_USERS.map((definition) => [definition.national_id, definition]),
+  );
+  const existingByNationalId = await repository.find({
+    where: DEMO_USERS.map((definition) => ({
+      national_id: definition.national_id,
+    })),
+  });
+  const demoUserIds = new Set(existingByNationalId.map((user) => user.id));
+  const usersByTargetEmail = new Map(
+    (
+      await repository.find({
+        where: DEMO_USERS.map((definition) => ({ email: definition.email })),
+      })
+    ).map((user) => [user.email, user]),
+  );
+
+  for (const existingUser of existingByNationalId) {
+    const definition = definitionsByNationalId.get(existingUser.national_id);
+    if (!definition || existingUser.email === definition.email) continue;
+
+    const targetOwner = usersByTargetEmail.get(definition.email);
+    if (targetOwner && targetOwner.id !== existingUser.id) {
+      if (!demoUserIds.has(targetOwner.id)) {
+        throw new Error(
+          `Cannot migrate ${definition.email}: it belongs to a non-demo user`,
+        );
+      }
+      const temporaryEmail = `e2e-seed-${targetOwner.id}-${randomUUID()}@example.invalid`;
+      await repository.update(targetOwner.id, { email: temporaryEmail });
+      usersByTargetEmail.delete(definition.email);
+      usersByTargetEmail.set(temporaryEmail, targetOwner);
+    }
+
+    await repository.update(existingUser.id, { email: definition.email });
+    usersByTargetEmail.set(definition.email, existingUser);
+  }
+}
+
 async function ensureWalletAndScore(dataSource: DataSource, user_id: string) {
   const walletRepository = dataSource.getRepository(Wallet);
   const wallet = await walletRepository.findOne({ where: { user_id } });
@@ -312,6 +315,13 @@ export default class TestUsers1744707251495 implements Seeder {
       return;
     }
 
+    const demoUsersPassword = process.env.DEMO_USERS_PASSWORD;
+    if (!demoUsersPassword || demoUsersPassword.length < 8) {
+      throw new Error(
+        'DEMO_USERS_PASSWORD must be provided with at least 8 characters',
+      );
+    }
+
     const language = await ensureLanguage(dataSource.getRepository(Language));
     const country = await ensureCountry(dataSource.getRepository(Country));
     const region = await ensureRegion(
@@ -330,7 +340,8 @@ export default class TestUsers1744707251495 implements Seeder {
     });
     const roleIds = new Map(roles.map((role) => [role.name, role.id]));
     const userRepository = dataSource.getRepository(User);
-    const hashedPassword = await bcrypt.hash(DEMO_PASSWORD, 10);
+    await migrateDemoUserEmails(userRepository);
+    const hashedPassword = await bcrypt.hash(demoUsersPassword, 10);
     const seededUsers = new Map<string, User>();
     let createdCount = 0;
     let updatedCount = 0;

@@ -39,7 +39,7 @@ export const checkIfMicroTasIskRejectedAndTotalAttempts = (
     }
   }
   const totalAttempts = microTask.dataSets.length;
-  const canRetry = hasDataSet ? isRejected && totalAttempts < maxRetry : true;
+  const canRetry = hasDataSet ? isRejected && totalAttempts <= maxRetry : true;
   const totalDatasets = microTask.dataSets.length;
   const lastDataset =
     totalDatasets == 0 ? undefined : microTask.dataSets[totalDatasets - 1];
@@ -93,7 +93,7 @@ export const getMicroTaskStatus = (
     }
   }
   const totalAttempts = microTask.dataSets.length;
-  const canRetry = isRejected && totalAttempts < maxRetry;
+  const canRetry = isRejected && totalAttempts <= maxRetry;
   const totalDatasets = microTask.dataSets.length;
   const lastDataset =
     totalDatasets == 0 ? undefined : microTask.dataSets[totalDatasets - 1];

@@ -916,7 +916,7 @@ export class TaskDistributionService {
   async distributeTaskForReviewers(taskId: string) {
     const task = await this.taskService.findOne({
       where: { id: taskId, is_archived: false },
-      relations: { taskRequirement: true, userToTasks: true },
+      relations: { taskRequirement: true },
     });
     if (!task) {
       throw new NotFoundException('Task not found or it is deleted');
@@ -932,9 +932,13 @@ export class TaskDistributionService {
     });
     const pendingDataSets = dataSets.filter((dS) => dS.status === 'Pending');
     const reviewedDataSets = dataSets.filter((dS) => dS.status !== 'Pending');
-    const taskReviewers = task.userToTasks
-      .filter((tM) => tM.role === 'Reviewer')
-      .map((tM) => tM.user_id);
+    const taskReviewerMemberships = await this.taskService.findAllTaskMembers(
+      taskId,
+      { where: { role: Role.REVIEWER } },
+    );
+    const taskReviewers = taskReviewerMemberships.map(
+      (member) => member.user_id,
+    );
     const pendingDataSetIds = pendingDataSets.map((pd) => pd.id);
     await this.reviewerTaskService.distributeTaskForReviewers(
       task,

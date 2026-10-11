@@ -142,7 +142,7 @@ describe('DataSetService', () => {
 
       await expect(
         service.createMultipleTextDataSet([], 'contributor-1', queryRunner),
-      ).resolves.toBeUndefined();
+      ).resolves.toEqual([]);
       expect(queryRunner.manager.save).not.toHaveBeenCalled();
     });
 

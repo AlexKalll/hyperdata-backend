@@ -9,10 +9,11 @@ import { CommunicationModule } from './communication/communication.module';
 import { AuthModule } from './auth/auth.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { dataSourceOptions } from 'src/database/data-source';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SmsModule } from './sms/sms.module';
 import { FinanceModule } from './finance/finance.module';
 import { EmailModule } from './email/email.module';
+import { EMAIL_BRAND_NAME } from './email/email.templates';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HealthModule } from './health/health.module';
 import { LoggerMiddleware } from './middleware/logger.middleware';
@@ -54,16 +55,39 @@ import configuration from './config/configuration';
         DATASET_RABBITMQ_EXCHANGE_NAME: Joi.string().required(),
         DATASET_RABBITMQ_QUEUE_NAME: Joi.string().required(),
         DATASET_RABBITMQ_ROUTING_KEY: Joi.string().required(),
-        SMS_BASE_URL: Joi.string().required(),
-        SMS_IDENTIFIER: Joi.string().required(),
-        SMS_SENDER: Joi.string().required(),
-        SMS_TOKEN: Joi.string().required(),
+        SMS_PROVIDER: Joi.string()
+          .valid('afromessage', 'smsethiopia')
+          .default('afromessage'),
+        SMS_BASE_URL: Joi.when('SMS_PROVIDER', {
+          is: 'afromessage',
+          then: Joi.string().required(),
+          otherwise: Joi.string().allow('').optional(),
+        }),
+        SMS_IDENTIFIER: Joi.when('SMS_PROVIDER', {
+          is: 'afromessage',
+          then: Joi.string().required(),
+          otherwise: Joi.string().allow('').optional(),
+        }),
+        SMS_SENDER: Joi.string().allow('').default(''),
+        SMS_TOKEN: Joi.when('SMS_PROVIDER', {
+          is: 'afromessage',
+          then: Joi.string().required(),
+          otherwise: Joi.string().allow('').optional(),
+        }),
+        SMS_ETHIOPIA_API_KEY: Joi.when('SMS_PROVIDER', {
+          is: 'smsethiopia',
+          then: Joi.string().required(),
+          otherwise: Joi.string().allow('').optional(),
+        }),
         MINIO_ENDPOINT: Joi.string().required(),
         MINIO_ACCESS_KEY: Joi.string().required(),
         MINIO_SECRET_KEY: Joi.string().required(),
         MINIO_BUCKET: Joi.string().required(),
         EMAIL_USER: Joi.string().required(),
         EMAIL_PASS: Joi.string().required(),
+        FRONTEND_URL: Joi.string()
+          .uri({ scheme: ['http', 'https'] })
+          .required(),
         ENABLE_WITHDRAWALS: Joi.string()
           .valid('true', 'false')
           .default('false'),
@@ -90,16 +114,24 @@ import configuration from './config/configuration';
         abortEarly: true,
       },
     }),
-    MailerModule.forRoot({
-      transport: {
-        service: 'gmail',
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      },
-      defaults: {
-        from: '"Mahder" mahder@gmail.com',
+    MailerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const emailUser = configService.getOrThrow<string>('EMAIL_USER');
+
+        return {
+          transport: {
+            service: 'gmail',
+            auth: {
+              user: emailUser,
+              pass: configService.getOrThrow<string>('EMAIL_PASS'),
+            },
+          },
+          defaults: {
+            from: `"${EMAIL_BRAND_NAME}" <${emailUser}>`,
+          },
+        };
       },
     }),
     BullModule.forRoot({
