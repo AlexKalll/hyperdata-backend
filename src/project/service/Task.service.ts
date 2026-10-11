@@ -34,6 +34,8 @@ import { Role } from 'src/auth/entities/Role.entity';
 import { RoleService } from 'src/auth/service/Role.service';
 import { Role as RoleEnum } from 'src/auth/decorators/roles.enum';
 import { EmailService } from 'src/email/email.service';
+import type { AssignmentEmailOptions } from 'src/email/email.service';
+import { randomBytes } from 'crypto';
 import { paginate, PaginatedResult } from 'src/utils/paginate.util';
 import { DialectService } from 'src/base_data/service/Dialect.service';
 import { TaskInstruction } from '../entities/TaskInstruction.entity';
@@ -90,6 +92,20 @@ export class TaskService {
     // private readonly notificationService:NotificationService,
   ) {
     this.paginateService = new PaginationService<Task>(this.taskRepository);
+  }
+
+  private async sendAssignmentEmailSafely(
+    to: string,
+    options: AssignmentEmailOptions,
+  ): Promise<void> {
+    try {
+      await this.emailService.sendAssignmentEmail(to, options);
+    } catch (error) {
+      console.error(
+        `Failed to send assignment email to ${to}:`,
+        error instanceof Error ? error.message : error,
+      );
+    }
   }
 
   /**
@@ -534,34 +550,16 @@ export class TaskService {
     if (!role) {
       throw new NotFoundException(`Role not found`);
     }
-    if (user) {
-      this.emailService.sendEmail(
-        user.email,
-        'Welcome to Mahder platform',
-        `
-        Dear ${user.first_name} ${user.middle_name},you are assigned as a facilitator for a task ${task.name}
-       
-        `,
-      );
-    }
+    let temporaryPassword: string | undefined;
     if (!user) {
-      const randomPassword = Math.random().toString(36).slice(-8);
+      temporaryPassword = randomBytes(18).toString('base64url');
       user = await this.userService.create(
         {
           email: userTask.email,
           role_id: role.id,
-          password: randomPassword,
+          password: temporaryPassword,
         },
         queryRunner,
-      );
-      // Send email to user with random password
-      this.emailService.sendEmail(
-        user.email,
-        'Welcome to Mahder platform',
-        `
-          Dear user, Welcome to our platform,you are assigned as a facilitator for a task ${task.name}
-          Your password is ${randomPassword}, you can change it later
-          `,
       );
     }
     // Check If the user is already assigned
@@ -571,7 +569,7 @@ export class TaskService {
     if (userTaskBefore) {
       return userTaskBefore;
     }
-    return await this.userTaskService.create(
+    const assignedUserTask = await this.userTaskService.create(
       {
         task_id: task.id,
         user_id: user.id,
@@ -580,6 +578,16 @@ export class TaskService {
       },
       queryRunner,
     );
+    await this.sendAssignmentEmailSafely(user.email, {
+      recipientName: [user.first_name, user.middle_name, user.last_name]
+        .filter(Boolean)
+        .join(' '),
+      role: 'Facilitator',
+      resourceType: 'task',
+      resourceName: task.name,
+      temporaryPassword,
+    });
+    return assignedUserTask;
   }
   /**
    * Assigns a reviewer to a task.
@@ -612,34 +620,16 @@ export class TaskService {
     if (!role) {
       throw new NotFoundException(`Role not found`);
     }
-    if (user) {
-      this.emailService.sendEmail(
-        user.email,
-        'Welcome to Mahder platform',
-        `
-        Dear ${user.first_name} ${user.middle_name},you are assigned as a reviewer for a task ${task.name}
-       
-        `,
-      );
-    }
+    let temporaryPassword: string | undefined;
     if (!user) {
-      const randomPassword = Math.random().toString(36).slice(-8);
+      temporaryPassword = randomBytes(18).toString('base64url');
       user = await this.userService.create(
         {
           email: userTask.email,
           role_id: role.id,
-          password: randomPassword,
+          password: temporaryPassword,
         },
         queryRunner,
-      );
-      // Send email to user with random password
-      this.emailService.sendEmail(
-        user.email,
-        'Welcome to Mahder platform',
-        `
-          Dear user, Welcome to our platform,you are assigned as a reviewer for a task ${task.name}
-          Your password is ${randomPassword}, you can change it later
-          `,
       );
     }
     const userTaskBefore: UserTask | null = await this.userTaskService.findOne({
@@ -648,7 +638,7 @@ export class TaskService {
     if (userTaskBefore) {
       return userTaskBefore;
     }
-    return await this.userTaskService.create(
+    const assignedUserTask = await this.userTaskService.create(
       {
         task_id: task.id,
         user_id: user.id,
@@ -656,6 +646,16 @@ export class TaskService {
       },
       queryRunner,
     );
+    await this.sendAssignmentEmailSafely(user.email, {
+      recipientName: [user.first_name, user.middle_name, user.last_name]
+        .filter(Boolean)
+        .join(' '),
+      role: 'Reviewer',
+      resourceType: 'task',
+      resourceName: task.name,
+      temporaryPassword,
+    });
+    return assignedUserTask;
   }
   /**
    * Assigns contributors to a task.
@@ -1006,22 +1006,36 @@ export class TaskService {
     if (!userTaskBefore) {
       throw new NotFoundException(`User not found`);
     }
-    userTaskBefore.is_flagged = false;
-    userTaskBefore.status = 'InActive';
     if (userTaskBefore.is_flagged) {
-      this.emailService.sendEmail(
-        userTaskBefore.user.email,
-        'Mahder platform',
-        `
-        Dear ${userTaskBefore.user.first_name} ${userTaskBefore.user.middle_name},you are flagged from the task ${userTaskBefore.task.name}
-        `,
-      );
+      return userTaskBefore;
     }
-    return await this.userTaskService.update(
+
+    const flaggedUserTask = await this.userTaskService.update(
       userTaskBefore.id,
-      { is_flagged: userTask.is_flagged },
+      { is_flagged: true, status: 'InActive' },
       queryRunner,
     );
+
+    try {
+      await this.emailService.sendTaskFlaggedEmail(
+        userTaskBefore.user.email,
+        [
+          userTaskBefore.user.first_name,
+          userTaskBefore.user.middle_name,
+          userTaskBefore.user.last_name,
+        ]
+          .filter(Boolean)
+          .join(' '),
+        userTaskBefore.task.name,
+      );
+    } catch (error) {
+      console.error(
+        `Failed to send task flag email to ${userTaskBefore.user.email}:`,
+        error instanceof Error ? error.message : error,
+      );
+    }
+
+    return flaggedUserTask;
   }
 
   /**

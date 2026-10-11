@@ -203,13 +203,8 @@ export class AuthService {
     const code_expiration_date = new Date();
     code_expiration_date.setMinutes(code_expiration_date.getMinutes() + 5);
 
-    const message = `Your verification code is ${code}`;
     if (username == user.email) {
-      await this.mailService.sendEmail(
-        user.email,
-        'Welcome to Mahder platform',
-        message,
-      );
+      await this.mailService.sendPasswordResetCode(user.email, code);
     } else {
       const smsSent = await this.smsService.sendVerificationCode(
         user.phone_number,

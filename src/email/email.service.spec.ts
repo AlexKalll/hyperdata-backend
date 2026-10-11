@@ -1,19 +1,33 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MailerService } from '@nestjs-modules/mailer';
+import { ConfigService } from '@nestjs/config';
 import { EmailService } from './email.service';
+
+interface SentEmail {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}
 
 describe('EmailService', () => {
   let service: EmailService;
-  let mailerService: { sendMail: jest.Mock };
+  let mailerService: {
+    sendMail: jest.Mock<Promise<unknown>, [SentEmail]>;
+  };
 
   beforeEach(async () => {
     mailerService = {
-      sendMail: jest.fn(),
+      sendMail: jest.fn<Promise<unknown>, [SentEmail]>(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EmailService,
+        {
+          provide: ConfigService,
+          useValue: { getOrThrow: jest.fn(() => 'http://localhost:3001/') },
+        },
         {
           provide: MailerService,
           useValue: mailerService,
@@ -28,23 +42,24 @@ describe('EmailService', () => {
     expect(service).toBeDefined();
   });
 
-  it('should send email through the mailer service', async () => {
+  it('sends password-reset email through the mailer service', async () => {
     mailerService.sendMail.mockResolvedValue({});
 
-    await service.sendEmail('user@example.com', 'Welcome', '<p>Hello</p>');
+    await service.sendPasswordResetCode('user@example.com', '123456');
 
-    expect(mailerService.sendMail).toHaveBeenCalledWith({
-      to: 'user@example.com',
-      subject: 'Welcome',
-      html: '<p>Hello</p>',
-    });
+    expect(mailerService.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: 'user@example.com',
+        subject: 'Your Data Mahder password reset code',
+      }),
+    );
   });
 
   it('should throw a stable error when mail delivery fails', async () => {
     mailerService.sendMail.mockRejectedValue(new Error('smtp down'));
 
     await expect(
-      service.sendEmail('user@example.com', 'Welcome', '<p>Hello</p>'),
+      service.sendPasswordResetCode('user@example.com', '123456'),
     ).rejects.toThrow('Failed to send email');
   });
 });

@@ -18,10 +18,12 @@ import { Role as RoleEnum } from 'src/auth/decorators/roles.enum';
 import { User } from 'src/auth/entities/User.entity';
 import { Role } from 'src/auth/entities/Role.entity';
 import { EmailService } from 'src/email/email.service';
+import type { AssignmentEmailOptions } from 'src/email/email.service';
 import { paginate, PaginatedResult } from 'src/utils/paginate.util';
 import { TaskService } from './Task.service';
 import { UserTask } from '../entities/UserTask.entity';
 import { UserTaskService } from './UserTask.service';
+import { randomBytes } from 'crypto';
 @Injectable()
 export class ProjectService {
   constructor(
@@ -38,6 +40,20 @@ export class ProjectService {
     this.paginateService = new PaginationService<Project>(
       this.projectRepository,
     );
+  }
+
+  private async sendAssignmentEmailSafely(
+    to: string,
+    options: AssignmentEmailOptions,
+  ): Promise<void> {
+    try {
+      await this.emailService.sendAssignmentEmail(to, options);
+    } catch (error) {
+      console.error(
+        `Failed to send assignment email to ${to}:`,
+        error instanceof Error ? error.message : error,
+      );
+    }
   }
 
   /**
@@ -246,56 +262,37 @@ export class ProjectService {
     if (!role) {
       throw new NotFoundException(`Role not found`);
     }
-    if (user) {
-      const userEmail = user.email;
-      this.emailService
-        .sendEmail(
-          userEmail,
-          'Welcome to Mahder platform',
-          `
-          Dear ${user.first_name} ${user.middle_name},you are assigned as a Project Manager for the project ${project?.name}
-          `,
-        )
-        .catch((err) => {
-          console.error(
-            `Failed to send email to ${userEmail}:`,
-            err instanceof Error ? err.message : err,
-          );
-        });
-    }
+    let temporaryPassword: string | undefined;
     if (!user) {
-      const randomPassword = Math.random().toString(36).slice(-8);
+      temporaryPassword = randomBytes(18).toString('base64url');
       user = await this.userService.create(
         {
           email: projectManager.email,
           role_id: role.id,
-          password: randomPassword,
+          password: temporaryPassword,
         },
         queryRunner,
       );
-      // Send email to user with random password
-      const userEmail = user.email;
-      this.emailService
-        .sendEmail(
-          userEmail,
-          'Welcome to Mahder platform',
-          `
-            Dear user, welcome to our platform,you are assigned as a Project Manager for the project ${project?.name}
-            Your password is ${randomPassword}
-            `,
-        )
-        .catch((err) => {
-          console.error(
-            `Failed to send email to ${userEmail}:`,
-            err instanceof Error ? err.message : err,
-          );
-        });
     }
-    return await this.update(
+
+    const managerChanged = project.manager_id !== user.id;
+    const updatedProject = await this.update(
       projectManager.project_id,
       { manager_id: user.id },
       queryRunner,
     );
+    if (managerChanged) {
+      await this.sendAssignmentEmailSafely(user.email, {
+        recipientName: [user.first_name, user.middle_name, user.last_name]
+          .filter(Boolean)
+          .join(' '),
+        role: 'Project Manager',
+        resourceType: 'project',
+        resourceName: project.name,
+        temporaryPassword,
+      });
+    }
+    return updatedProject;
   }
   async findPaginateProjectMembers(
     project_id: string,

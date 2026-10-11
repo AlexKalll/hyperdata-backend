@@ -54,7 +54,7 @@ describe('AuthService', () => {
     consume: jest.Mock;
   };
   let smsService: { sendVerificationCode: jest.Mock };
-  let mailService: { sendEmail: jest.Mock };
+  let mailService: { sendPasswordResetCode: jest.Mock };
   let fileService: { getPreSignedUrl: jest.Mock };
   let jwtService: { verify: jest.Mock; sign: jest.Mock };
   let eventEmitter: { emit: jest.Mock };
@@ -101,7 +101,7 @@ describe('AuthService', () => {
       consume: jest.fn(),
     };
     smsService = { sendVerificationCode: jest.fn().mockResolvedValue(true) };
-    mailService = { sendEmail: jest.fn() };
+    mailService = { sendPasswordResetCode: jest.fn() };
     fileService = { getPreSignedUrl: jest.fn() };
     jwtService = { verify: jest.fn(), sign: jest.fn() };
     eventEmitter = { emit: jest.fn() };
@@ -384,10 +384,9 @@ describe('AuthService', () => {
         'Code sent successfully',
       );
 
-      expect(mailService.sendEmail).toHaveBeenCalledWith(
+      expect(mailService.sendPasswordResetCode).toHaveBeenCalledWith(
         user.email,
-        'Welcome to Mahder platform',
-        expect.stringContaining('123456'),
+        '123456',
       );
       expect(smsService.sendVerificationCode).not.toHaveBeenCalled();
       expect(userVerificationService.create).toHaveBeenCalledWith({
@@ -412,7 +411,7 @@ describe('AuthService', () => {
         user.phone_number,
         '123456',
       );
-      expect(mailService.sendEmail).not.toHaveBeenCalled();
+      expect(mailService.sendPasswordResetCode).not.toHaveBeenCalled();
       expect(userVerificationService.create).toHaveBeenCalledWith({
         username: user.phone_number,
         code: 'hash:123456',
