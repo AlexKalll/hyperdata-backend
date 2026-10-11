@@ -178,6 +178,11 @@ export class UpdateProfileDto {
   @MinLength(3)
   last_name?: string;
 
+  @ApiPropertyOptional({ format: 'email' })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
   @ApiProperty()
   @IsOptional()
   @IsString()

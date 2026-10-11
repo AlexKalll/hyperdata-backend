@@ -387,6 +387,11 @@ record.
   and removed the redundant content heading above the greeting.
 - Removed the automated/no-reply footer from transactional email templates.
 
+## 2026-10-11 - Profile update compatibility
+
+- Accepted optional email addresses on self-service profile updates and aligned
+  profile clients with the strict DTO field allowlist.
+
 ## How to record future changes
 
 When making non-trivial modifications, add a short entry under a new dated
