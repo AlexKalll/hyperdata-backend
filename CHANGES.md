@@ -445,6 +445,12 @@ record.
 - Tell task reviewers and facilitators to complete their name and remaining
   profile details in Account Setting after signing in.
 
+## 2026-10-12 - Contributor qualification test gating
+
+- Keep exam-required tasks of either visibility in the test flow while
+  submissions are pending, let contributors continue partially completed
+  exams, and activate contributors only after every test item is approved.
+
 ## How to record future changes
 
 When making non-trivial modifications, add a short entry under a new dated

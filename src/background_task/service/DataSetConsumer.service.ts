@@ -28,6 +28,27 @@ const datasetQueue = process.env.DATASET_RABBITMQ_QUEUE_NAME || 'dataset.queue';
 const retryDelays = [5000, 15000];
 const failureLogger = new Logger('DatasetFailureHandler');
 
+export const hasPassedAllContributorTests = (
+  testMicroTasks: MicroTask[],
+  contributorId: string,
+): boolean => {
+  if (testMicroTasks.length === 0) return false;
+
+  return testMicroTasks.every((microTask) => {
+    const contributorDataSets = (microTask.dataSets ?? []).filter(
+      (dataSet) => dataSet.contributor_id === contributorId,
+    );
+    if (contributorDataSets.length === 0) return false;
+
+    return (
+      checkIfMicroTasIskRejectedAndTotalAttempts(
+        { ...microTask, dataSets: contributorDataSets },
+        3,
+      ).acceptanceStatus === 'APPROVED'
+    );
+  });
+};
+
 // Preserve the original bytes (including malformed JSON), then acknowledge
 // only after the broker confirms the persistent copy in the failure queue.
 export const preserveFailedDatasetAction: MessageErrorHandler = async (
@@ -341,55 +362,30 @@ export class DatasetConsumer {
         dataSet.microTask.task.require_contributor_test &&
         dataSet.microTask.is_test
       ) {
-        // check if all the test micro tasks are approved
+        // Require an approved submission for every test microtask before
+        // activating the contributor. Loading only test tasks with existing
+        // submissions would let a partial exam appear complete.
         const contributorTestMicroTasks: MicroTask[] =
           await this.microTaskService.findAllTestMicroTasks({
             where: {
               task_id: dataSet.microTask.task.id,
-              is_test: true,
-              dataSets: {
-                contributor_id: dataSet.contributor_id,
-              },
             },
             relations: {
               dataSets: true,
             },
           });
-        if (contributorTestMicroTasks.length == 1) {
+        if (
+          hasPassedAllContributorTests(
+            contributorTestMicroTasks,
+            dataSet.contributor_id,
+          )
+        ) {
           await this.taskService.activateContributorToTask(create, queryRunner);
-        } else {
-          let has_pending = false;
-          let has_rejected = false;
-          for (const task of contributorTestMicroTasks) {
-            const statusOfMicroTask =
-              checkIfMicroTasIskRejectedAndTotalAttempts(task, 3);
-            if (task.id == dataSet.micro_task_id) {
-              continue;
-            }
-            if (
-              statusOfMicroTask.acceptanceStatus === 'PENDING' ||
-              statusOfMicroTask.acceptanceStatus === 'NOT_STARTED'
-            ) {
-              has_pending = true;
-              break;
-            }
-            if (statusOfMicroTask.acceptanceStatus === 'REJECTED') {
-              has_rejected = true;
-              break;
-            }
-            // break;
-          }
-          if (!has_rejected && !has_pending) {
-            await this.taskService.activateContributorToTask(
-              create,
-              queryRunner,
-            );
-            await this.cacheService.clearContributorTaskCache(
-              dataSet.contributor_id,
-              dataSet.microTask.task_id,
-            );
-          }
         }
+        await this.cacheService.clearContributorTaskCache(
+          dataSet.contributor_id,
+          dataSet.microTask.task_id,
+        );
       }
 
       // credit contributor and reviewer wallet

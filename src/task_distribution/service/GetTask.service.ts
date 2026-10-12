@@ -1227,17 +1227,12 @@ export class GetTasksService {
    *
    * Scenarios handled:
    *
-   * 1. Private task + contributor test required:
-   *    - If contributor already submitted test micro-tasks:
-   *      → Return submitted test micro-tasks with retry and review metadata
-   *    - If no submissions:
-   *      → Return unstarted test micro-tasks
+   * 1. Task requires a contributor test (public or private):
+   *    - Return all exam micro-tasks with this contributor's submission status
+   *    - Keep the contributor pending while any exam submission is under review
+   *    - Show unanswered exam items so the contributor can continue
    *
-   * 2. Public task + contributor test required:
-   *    - Return contributor submissions (no test gating)
-   *    - Micro-tasks are marked UNDER_REVIEW
-   *
-   * 3. Task does NOT require contributor test:
+   * 2. Task does NOT require contributor test:
    *    - If contributor has an assignment:
    *      → Load current batch micro-tasks
    *      → Merge submitted and newly assigned micro-tasks
@@ -1245,7 +1240,7 @@ export class GetTasksService {
    *    - If no assignment:
    *      → Return empty micro-task list under review
    *
-   * 4. Fallback:
+   * 3. Fallback:
    *    - Return empty contributor micro-task response under review
    *
    * Retry Logic:
@@ -1281,144 +1276,45 @@ export class GetTasksService {
     userId: string,
   ): Promise<TaskMicroTasksResponse> {
     console.log(' ========== handlePending ==========');
-    if (!task.is_public && task.require_contributor_test) {
-      const contributorSubmittedMicroTasks =
-        await this.microTaskService.findAll({
-          where: {
-            task_id: task.id,
-            dataSets: {
-              contributor_id: userId,
-            },
-          },
-          relations: {
-            dataSets: { rejectionReasons: { rejectionType: true } },
-          },
-        });
-      if (contributorSubmittedMicroTasks.length > 0) {
-        const contributorMicroTasks: ContributorMicroTaskRto[] = [];
-        for (const microTask of contributorSubmittedMicroTasks) {
-          const status = getMicroTaskStatus(
-            microTask,
-            task.taskRequirement.max_retry_per_task,
-          );
-          contributorMicroTasks.push(
-            ContributorMicroTaskRto.from(
-              {
-                ...microTask,
-                dataSets: status.dataSet ? [status.dataSet] : [],
-              },
-              {
-                current_retry: status.totalAttempts,
-                allowed_retry: task.taskRequirement.max_retry_per_task,
-                acceptance_status: status.acceptanceStatus,
-                can_retry: status.canRetry,
-              },
-            ),
-          );
-        }
-        return TaskMicroTasksResponse.from({
-          ...task,
-          has_passed: 'UNDER_REVIEW',
-          batch: 0,
-          is_test: true,
-          contributorMicroTask: contributorMicroTasks.sort((a, b) => {
-            if (a.can_retry === b.can_retry) return 0;
-            return a.can_retry ? -1 : 1; // true first
-          }),
-          taskInstruction:
-            task.taskInstructions.length > 0
-              ? task.taskInstructions[0]
-              : undefined,
-          minimum_seconds: task.taskRequirement.minimum_seconds,
-          maximum_seconds: task.taskRequirement.maximum_seconds,
-          minimum_characters_length:
-            task.taskRequirement.minimum_characters_length,
-          maximum_characters_length:
-            task.taskRequirement.maximum_characters_length,
-          estimated_earning:
-            task.taskRequirement.max_micro_task_per_contributor *
-            task.payment.contributor_credit_per_microtask,
-          earning_per_task: task.payment.contributor_credit_per_microtask,
-          average_time: task.taskRequirement.appriximate_time_per_batch,
-          deadline: null,
-        });
-      } else {
-        const testMicroTasks = await this.microTaskService.findAll({
-          where: {
-            is_test: true,
-            task_id: task.id,
-          },
-          relations: {
-            dataSets: true,
-          },
-        });
-        return TaskMicroTasksResponse.from({
-          ...task,
-          has_passed: 'PENDING',
-          batch: 0,
-          is_test: true,
-          contributorMicroTask: testMicroTasks.map((microTask) => {
-            return ContributorMicroTaskRto.from(microTask, {
-              current_retry: 0,
-              allowed_retry: 1,
-              acceptance_status: 'NOT_STARTED',
-              can_retry: false,
-            });
-          }),
-          taskInstruction:
-            task.taskInstructions.length > 0
-              ? task.taskInstructions[0]
-              : undefined,
-          minimum_seconds: task.taskRequirement.minimum_seconds,
-          maximum_seconds: task.taskRequirement.maximum_seconds,
-          minimum_characters_length:
-            task.taskRequirement.minimum_characters_length,
-          maximum_characters_length:
-            task.taskRequirement.maximum_characters_length,
-          estimated_earning:
-            task.taskRequirement.max_micro_task_per_contributor *
-            task.payment.contributor_credit_per_microtask,
-          earning_per_task: task.payment.contributor_credit_per_microtask,
-          average_time: task.taskRequirement.appriximate_time_per_batch,
-          deadline: null,
-        });
-      }
-    } else if (task.is_public && task.require_contributor_test) {
-      const contributorSubmissions: MicroTask[] =
-        await this.microTaskService.findAll({
-          where: {
-            task_id: task.id,
-            dataSets: {
-              contributor_id: userId,
-            },
-          },
-          relations: {
-            dataSets: { rejectionReasons: { rejectionType: true } },
-          },
-        });
-      const result: ContributorMicroTaskRto[] = [];
-      for (const mt of contributorSubmissions) {
-        const status = getMicroTaskStatus(
-          mt,
+    if (task.require_contributor_test) {
+      const testMicroTasks = await this.microTaskService.findAllTestMicroTasks({
+        where: { task_id: task.id },
+        relations: {
+          dataSets: { rejectionReasons: { rejectionType: true } },
+        },
+      });
+      const contributorMicroTasks = testMicroTasks.map((microTask) => {
+        const contributorDataSets = (microTask.dataSets ?? []).filter(
+          (dataSet) => dataSet.contributor_id === userId,
+        );
+        const status = checkIfMicroTasIskRejectedAndTotalAttempts(
+          { ...microTask, dataSets: contributorDataSets },
           task.taskRequirement.max_retry_per_task,
         );
-        result.push({
-          ...mt,
-          acceptance_status: status.acceptanceStatus,
-          current_retry: status.totalAttempts,
-          allowed_retry: task.taskRequirement.max_retry_per_task,
-          can_retry: status.canRetry,
-          dataSet: status.dataSet
-            ? ContributorDataSetRto.from(status.dataSet)
-            : undefined,
-        });
-      }
+
+        return ContributorMicroTaskRto.from(
+          {
+            ...microTask,
+            dataSets: status.dataSet ? [status.dataSet] : [],
+          },
+          {
+            current_retry: status.totalAttempts,
+            allowed_retry: task.taskRequirement.max_retry_per_task,
+            acceptance_status: status.acceptanceStatus,
+            can_retry: status.canRetry,
+          },
+        );
+      });
+      const hasPendingExamReview = contributorMicroTasks.some(
+        (microTask) => microTask.acceptance_status === 'PENDING',
+      );
+
       return TaskMicroTasksResponse.from({
         ...task,
-        has_passed: 'UNDER_REVIEW',
+        has_passed: hasPendingExamReview ? 'UNDER_REVIEW' : 'PENDING',
         batch: 0,
-        is_test: false,
-        contributorMicroTask: result.sort((a, b) => {
+        is_test: true,
+        contributorMicroTask: contributorMicroTasks.sort((a, b) => {
           if (a.can_retry === b.can_retry) return 0;
           return a.can_retry ? -1 : 1; // true first
         }),
@@ -1439,7 +1335,7 @@ export class GetTasksService {
         average_time: task.taskRequirement.appriximate_time_per_batch,
         deadline: null,
       });
-    } else if (!task.require_contributor_test) {
+    } else {
       const contributorMicroTasksAssigned =
         await this.contributorMicroTaskService.findOne({
           where: {
@@ -1567,30 +1463,6 @@ export class GetTasksService {
           deadline: null,
         });
       }
-    } else {
-      return TaskMicroTasksResponse.from({
-        ...task,
-        has_passed: 'UNDER_REVIEW',
-        batch: 0,
-        is_test: false,
-        contributorMicroTask: [],
-        taskInstruction:
-          task.taskInstructions.length > 0
-            ? task.taskInstructions[0]
-            : undefined,
-        minimum_seconds: task.taskRequirement.minimum_seconds,
-        maximum_seconds: task.taskRequirement.maximum_seconds,
-        minimum_characters_length:
-          task.taskRequirement.minimum_characters_length,
-        maximum_characters_length:
-          task.taskRequirement.maximum_characters_length,
-        estimated_earning:
-          task.taskRequirement.max_micro_task_per_contributor *
-          task.payment.contributor_credit_per_microtask,
-        earning_per_task: task.payment.contributor_credit_per_microtask,
-        average_time: task.taskRequirement.appriximate_time_per_batch,
-        deadline: null,
-      });
     }
   }
 
