@@ -11,6 +11,7 @@ export const UserSanitizedFields = {
   phone_number: true,
   profile_picture: true,
   is_active: true,
+  must_change_password: true,
   email: true,
   created_date: true,
 };
@@ -49,6 +50,8 @@ export class UserSanitize {
   profile_picture: string;
   @ApiProperty()
   is_active: boolean;
+  @ApiProperty()
+  must_change_password: boolean;
   @ApiProperty()
   email: string;
   @ApiProperty()
@@ -95,6 +98,7 @@ export class UserSanitize {
       phone_number: user.phone_number,
       profile_picture: user.profile_picture,
       is_active: user.is_active,
+      must_change_password: user.must_change_password === true,
       email: user.email,
       created_date: user.created_date,
       role: user.role && RoleSanitize.from(user.role),

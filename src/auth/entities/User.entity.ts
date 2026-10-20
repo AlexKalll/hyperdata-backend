@@ -50,6 +50,9 @@ export class User {
   @Column({ select: false })
   password: string;
 
+  @Column({ default: false })
+  must_change_password: boolean;
+
   @Column({ nullable: true })
   profile_picture: string;
 

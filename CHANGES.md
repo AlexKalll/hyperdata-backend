@@ -400,6 +400,57 @@ record.
 - Accepted optional email addresses on self-service profile updates and aligned
   profile clients with the strict DTO field allowlist.
 
+## 2026-10-11 - Invitation, reviewer statistics and email diagnostics
+
+- Allowed invitation fields through the global whitelist while retaining Zod
+  validation, including facilitator invitations and positive integer limits.
+- Count reviewer assignments using unique, unexpired pending datasets; exclude
+  stale references from summary cards and reviewer progress counts.
+- Bound SMTP connection timeouts and return a clear temporary-unavailable error
+  for failed delivery, with credential-free SMTP diagnostics.
+
+## 2026-10-11 - Dataset processing retry-loop hotfix
+
+- Settle zero-reward reviews without creating zero-value financial transactions;
+  reject invalid credit values before touching wallet or ledger data.
+- Limit dataset processing to three delayed attempts per delivery on a dedicated
+  prefetch-one channel. Preserve exhausted or malformed messages in a durable
+  `.failed` queue using publisher confirms before acknowledging the original.
+- Keep originals on failure-queue publishing errors with a 30-second backoff.
+- Make post-review assignment cleanup idempotent even after assignment expiry,
+  while retaining assignment authorization at the review endpoint.
+
+## 2026-10-11 - Administrator-created accounts
+
+- Generate and email a random temporary password instead of accepting an
+  administrator-supplied password; roll back account creation on mail failure.
+- Add a first-login password-change flag with a non-destructive migration.
+  Temporary-password sessions expire after 15 minutes, cannot refresh, and can
+  access only profile/password-change endpoints until the user signs in again.
+- Apply the same first-login requirement to accounts created by project/task
+  assignment, and exclude password hashes from password-change responses.
+- Validate invitation registration against the global DTO contract and expose
+  only registration reference fields through a valid, unexpired invitation.
+
+## 2026-10-12 - Account provisioning reliability
+
+- Treat invitation phone numbers as optional, as the registration form does.
+- Roll back project/task assignments that generated new credentials when their
+  credential email cannot be delivered, preventing inaccessible accounts.
+- Limit the backend CI deployment target to the backend container so an API fix
+  does not rebuild or recreate the frontend and notification service.
+
+## 2026-10-12 - Assignment onboarding guidance
+
+- Tell task reviewers and facilitators to complete their name and remaining
+  profile details in Account Setting after signing in.
+
+## 2026-10-12 - Contributor qualification test gating
+
+- Keep exam-required tasks of either visibility in the test flow while
+  submissions are pending, let contributors continue partially completed
+  exams, and activate contributors only after every test item is approved.
+
 ## How to record future changes
 
 When making non-trivial modifications, add a short entry under a new dated

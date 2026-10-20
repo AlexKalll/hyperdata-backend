@@ -55,11 +55,53 @@ describe('EmailService', () => {
     );
   });
 
+  it.each(['Facilitator', 'Reviewer'])(
+    'guides task %s accounts to complete their profile',
+    async (role) => {
+      mailerService.sendMail.mockResolvedValue({});
+
+      for (const temporaryPassword of ['temporary-password', undefined]) {
+        await service.sendAssignmentEmail('user@example.com', {
+          role,
+          resourceType: 'task',
+          resourceName: 'Test task',
+          temporaryPassword,
+        });
+
+        const calls = mailerService.sendMail.mock.calls;
+        const sentEmail = calls[calls.length - 1][0];
+        expect(sentEmail.text).toContain('Account Setting');
+        expect(sentEmail.text).toContain('first and last name');
+        expect(sentEmail.text).toContain('other missing profile details');
+        expect(sentEmail.text).toContain(
+          temporaryPassword
+            ? 'required password change'
+            : 'After signing in, select Account Setting',
+        );
+      }
+    },
+  );
+
+  it('does not add task profile instructions to project-manager assignment emails', async () => {
+    mailerService.sendMail.mockResolvedValue({});
+
+    await service.sendAssignmentEmail('user@example.com', {
+      role: 'Project Manager',
+      resourceType: 'project',
+      resourceName: 'Test project',
+      temporaryPassword: 'temporary-password',
+    });
+
+    expect(mailerService.sendMail.mock.calls[0][0].text).not.toContain(
+      'Account Setting',
+    );
+  });
+
   it('should throw a stable error when mail delivery fails', async () => {
     mailerService.sendMail.mockRejectedValue(new Error('smtp down'));
 
     await expect(
       service.sendPasswordResetCode('user@example.com', '123456'),
-    ).rejects.toThrow('Failed to send email');
+    ).rejects.toThrow('Email delivery is temporarily unavailable');
   });
 });

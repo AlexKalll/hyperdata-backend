@@ -49,6 +49,7 @@ describe.each(['text', 'audio'] as const)('%s submissions', (kind) => {
     findOne: jest.Mock;
     updateOrCreateUserToPending: jest.Mock;
   };
+  let userTasks: { findOne: jest.Mock; findOneOrCreate: jest.Mock };
   let microTasks: { id: string; is_test: boolean }[];
   let runner: {
     connect: jest.Mock;
@@ -60,6 +61,7 @@ describe.each(['text', 'audio'] as const)('%s submissions', (kind) => {
   let task: {
     taskType: { task_type: string };
     taskRequirement: { max_retry_per_task: number };
+    require_contributor_test: boolean;
   };
 
   beforeEach(() => {
@@ -81,6 +83,7 @@ describe.each(['text', 'audio'] as const)('%s submissions', (kind) => {
           kind === 'text' ? taskTypes.TEXT_TO_TEXT : taskTypes.TEXT_TO_AUDIO,
       },
       taskRequirement: { max_retry_per_task: 1 },
+      require_contributor_test: false,
     };
     runner = {
       connect: jest.fn(),
@@ -115,6 +118,10 @@ describe.each(['text', 'audio'] as const)('%s submissions', (kind) => {
       findOne: jest.fn().mockResolvedValue(task),
       updateOrCreateUserToPending: jest.fn(),
     };
+    userTasks = {
+      findOne: jest.fn().mockResolvedValue({ status: UserTaskStatus.ACTIVE }),
+      findOneOrCreate: jest.fn(),
+    };
     service = new TaskSubmissionService(
       dataSets as any,
       contributorTasks as any,
@@ -135,7 +142,7 @@ describe.each(['text', 'audio'] as const)('%s submissions', (kind) => {
             ),
           ),
       } as any,
-      { findOneOrCreate: jest.fn() } as any,
+      userTasks as any,
       { clearContributorTaskCache: jest.fn() } as any,
       reviewerTasks as any,
     );
@@ -177,6 +184,7 @@ describe.each(['text', 'audio'] as const)('%s submissions', (kind) => {
   it('creates a pending contributor task for a text test submission', async () => {
     if (kind !== 'text') return;
 
+    task.require_contributor_test = true;
     microTasks[0].is_test = true;
     await service.submitMultipleTextDatasets(
       'user',
@@ -195,6 +203,22 @@ describe.each(['text', 'audio'] as const)('%s submissions', (kind) => {
       runner,
     );
     expect(runner.commitTransaction).toHaveBeenCalled();
+  });
+
+  it('blocks ordinary submissions until a required contributor test is passed', async () => {
+    task.require_contributor_test = true;
+    userTasks.findOne.mockResolvedValue({ status: UserTaskStatus.PENDING });
+
+    await expect(submit(['mt-1'])).rejects.toThrow(
+      'Pass the required contributor test before submitting task work',
+    );
+    expect(
+      dataSets[
+        kind === 'text'
+          ? 'createMultipleTextDataSet'
+          : 'createMultipleAudioDataSet'
+      ],
+    ).not.toHaveBeenCalled();
   });
 
   it('marks the assignment completed after the final fresh submissions', async () => {

@@ -76,7 +76,23 @@ export class WalletService {
     amount: number,
     metadata: any,
     queryRunner: QueryRunner,
-  ): Promise<Transaction> {
+  ): Promise<Transaction | null> {
+    const roundedAmount = Math.round(amount * 100) / 100;
+    if (
+      !Number.isFinite(amount) ||
+      amount < 0 ||
+      Math.abs(roundedAmount - amount) >
+        Number.EPSILON * Math.max(1, Math.abs(amount))
+    ) {
+      throw new BadRequestException(
+        'Credit must be a non-negative value with at most two decimal places',
+      );
+    }
+    amount = roundedAmount;
+    // Zero-reward work is settled by the caller's processed flags. It must not
+    // create a financial transaction or touch the wallet balance.
+    if (amount === 0) return null;
+
     const transaction = await this.transactionService.create(
       {
         user_id: userId,

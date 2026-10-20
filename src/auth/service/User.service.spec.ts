@@ -117,6 +117,7 @@ describe('UserService', () => {
       userVerificationService as any,
       jwtService as unknown as JwtService,
       { revokeAll: jest.fn() } as any,
+      { sendAccountCreatedEmail: jest.fn() } as any,
     );
   });
 
@@ -175,6 +176,7 @@ describe('UserService', () => {
           id: true,
           email: true,
           password: true,
+          must_change_password: true,
           is_active: true,
           profile_picture: true,
           first_name: true,

@@ -38,6 +38,8 @@ import { GENDER_CONSTANT } from 'src/utils/constants/Gender.constant';
 import { WalletService } from 'src/finance/service/Wallet.service';
 import { UserScoreService } from './UserScore.service';
 import { RefreshSessionService } from './RefreshSession.service';
+import { EmailService } from 'src/email/email.service';
+import { randomBytes } from 'crypto';
 @Injectable()
 export class UserService {
   constructor(
@@ -56,6 +58,7 @@ export class UserService {
     private userVerificationService: UserVerificationCodeService,
     private jwtService: JwtService,
     private refreshSessions: RefreshSessionService,
+    private readonly emailService: EmailService,
     // private eventEmitter: EventEmitter2,
   ) {
     this.paginationService = new PaginationService<User>(this.userRepository);
@@ -128,6 +131,7 @@ export class UserService {
       id: true,
       email: true,
       password: true,
+      must_change_password: true,
       is_active: true,
       profile_picture: true,
       first_name: true,
@@ -249,6 +253,30 @@ export class UserService {
       }
       return userCreated;
     }
+  }
+
+  async createManagedUser(
+    userData: Omit<Partial<User>, 'password'>,
+    queryRunner: QueryRunner,
+  ): Promise<User> {
+    const temporaryPassword = randomBytes(18).toString('base64url');
+    const user = await this.create(
+      {
+        ...userData,
+        email: userData.email?.trim(),
+        password: temporaryPassword,
+        must_change_password: true,
+      },
+      queryRunner,
+    );
+    // A delivery failure aborts the caller's transaction, so an inaccessible
+    // account is not left behind and the administrator can retry safely.
+    await this.emailService.sendAccountCreatedEmail(
+      user.email,
+      user.first_name,
+      temporaryPassword,
+    );
+    return user;
   }
   /**
    * Signs up a user based on the phone number.
@@ -590,6 +618,7 @@ export class UserService {
     delete userData.id;
     delete userData.password;
     delete userData.is_active;
+    delete userData.must_change_password;
     const manager = this.userRepository;
     if (userData.email) {
       const user = await this.findOne({ where: { email: userData.email } });
@@ -633,6 +662,7 @@ export class UserService {
     delete userData.id;
     delete userData.password;
     delete userData.is_active;
+    delete userData.must_change_password;
     const manager = this.userRepository;
     const user = await this.findOne({ where: { id } });
     if (!user) {
@@ -681,7 +711,10 @@ export class UserService {
   ): Promise<User | null> {
     const hashedPassword = await hashPassword(password);
     const manager = this.userRepository;
-    await manager.update(id, { password: hashedPassword });
+    await manager.update(id, {
+      password: hashedPassword,
+      must_change_password: false,
+    });
     const user = await manager.findOne({
       where: { id },
       relations: { role: true },
@@ -771,9 +804,11 @@ export class UserService {
     }
     const hashedPassword = await hashPassword(new_password);
     user.password = hashedPassword;
+    user.must_change_password = false;
     const updatedUser = await this.userRepository.save(user);
     await this.refreshSessions.revokeAll(user_id);
-    return updatedUser;
+    const { password: _password, ...safeUser } = updatedUser;
+    return safeUser;
   }
 
   /**

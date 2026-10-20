@@ -101,6 +101,9 @@ export class TaskService {
     try {
       await this.emailService.sendAssignmentEmail(to, options);
     } catch (error) {
+      // A newly generated credential must reach its owner before the
+      // surrounding transaction can commit the account and assignment.
+      if (options.temporaryPassword) throw error;
       console.error(
         `Failed to send assignment email to ${to}:`,
         error instanceof Error ? error.message : error,
@@ -558,6 +561,7 @@ export class TaskService {
           email: userTask.email,
           role_id: role.id,
           password: temporaryPassword,
+          must_change_password: true,
         },
         queryRunner,
       );
@@ -628,6 +632,7 @@ export class TaskService {
           email: userTask.email,
           role_id: role.id,
           password: temporaryPassword,
+          must_change_password: true,
         },
         queryRunner,
       );
