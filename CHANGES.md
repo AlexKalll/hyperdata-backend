@@ -409,6 +409,13 @@ record.
 - Bound SMTP connection timeouts and return a clear temporary-unavailable error
   for failed delivery, with credential-free SMTP diagnostics.
 
+## 2026-10-23 - Backend disk health threshold
+
+- Raise the disk-usage health-check threshold from 50% to 90% so normal shared-VPS
+  storage usage does not incorrectly mark the backend unhealthy.
+- Apply the health-check correction to the deployed backend and verify database
+  and storage health through the live health endpoint.
+
 ## 2026-10-18 - Optional invitation expiry
 
 - Accept omitted or null invitation expiry dates and store them as no expiration,

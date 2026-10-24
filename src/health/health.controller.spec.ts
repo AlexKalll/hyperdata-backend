@@ -54,7 +54,7 @@ describe('HealthController', () => {
     expect(db.pingCheck).toHaveBeenCalledWith('database');
     expect(disk.checkStorage).toHaveBeenCalledWith('storage', {
       path: '/',
-      thresholdPercent: 0.5,
+      thresholdPercent: 0.9,
     });
   });
 });
