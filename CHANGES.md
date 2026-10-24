@@ -409,6 +409,15 @@ record.
 - Bound SMTP connection timeouts and return a clear temporary-unavailable error
   for failed delivery, with credential-free SMTP diagnostics.
 
+## 2026-10-23 - Deployment example cleanup
+
+- Remove the tracked Caddy route example from the repository.
+
+## 2026-10-23 - Production frontend domain
+
+- Set the VPS email-link frontend URL to `https://portal.mahder.ai` and add it to
+  the CORS allowlist alongside the existing frontend domain.
+
 ## 2026-10-23 - Backend disk health threshold
 
 - Raise the disk-usage health-check threshold from 50% to 90% so normal shared-VPS
