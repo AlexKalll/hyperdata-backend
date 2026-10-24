@@ -83,7 +83,10 @@ export class InvitationLinkService {
     if (!role) {
       throw new BadRequestException('Invitation Role not found or deleted');
     }
-    if (invitationLink.current_invitations >= invitationLink.max_invitations) {
+    if (
+      invitationLink.max_invitations != null &&
+      invitationLink.current_invitations >= invitationLink.max_invitations
+    ) {
       throw new BadRequestException('Invitation limit reached');
     }
     userData.role_id = role.id;
@@ -152,7 +155,7 @@ export class InvitationLinkService {
     if (!invitationLink) {
       throw new BadRequestException('Invitation link not found');
     }
-    if (invitationLink.expiry_date < new Date()) {
+    if (invitationLink.expiry_date && invitationLink.expiry_date < new Date()) {
       throw new BadRequestException('Invitation link has expired');
     }
     return invitationLink;
@@ -191,11 +194,12 @@ export class InvitationLinkService {
     if (!invitationLink) {
       throw new BadRequestException('Invitation link not found');
     }
-    if (invitationLink?.expiry_date < new Date()) {
+    if (invitationLink.expiry_date && invitationLink.expiry_date < new Date()) {
       throw new BadRequestException('Invitation link has expired');
     }
     if (
-      invitationLink?.current_invitations >= invitationLink?.max_invitations
+      invitationLink.max_invitations != null &&
+      invitationLink.current_invitations >= invitationLink.max_invitations
     ) {
       throw new BadRequestException('Invitation limit reached');
     }

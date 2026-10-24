@@ -409,6 +409,13 @@ record.
 - Bound SMTP connection timeouts and return a clear temporary-unavailable error
   for failed delivery, with credential-free SMTP diagnostics.
 
+## 2026-10-18 - Optional invitation expiry
+
+- Accept omitted or null invitation expiry dates and store them as no expiration,
+  with a migration that makes the existing expiry column nullable.
+- Check expiry and invitation capacity only when the corresponding limit is set;
+  existing dated invitations and positive invitation limits remain enforced.
+
 ## 2026-10-11 - Dataset processing retry-loop hotfix
 
 - Settle zero-reward reviews without creating zero-value financial transactions;

@@ -10,7 +10,8 @@ export const createInvitationLinkSchema = z.object({
     .refine((val) => !isNaN(Date.parse(val)), {
       message: 'Invalid date format',
     })
-    .transform((val) => new Date(val)),
+    .transform((val) => new Date(val))
+    .nullish(),
   role: z.enum(['Contributor', 'Facilitator', 'Reviewer']).optional(),
   organization_id: z.string().uuid().optional(),
   max_invitations: z.number().int().positive().optional(),
@@ -31,7 +32,7 @@ export class createInvitationLinkDto extends createZodDto(
 ) {
   // The global class-validator whitelist runs before the route's Zod pipe.
   @Allow()
-  expiry_date: Date;
+  expiry_date?: Date | null;
 
   @Allow()
   role?: 'Contributor' | 'Facilitator' | 'Reviewer';

@@ -33,8 +33,8 @@ export class InvitationLink {
   @JoinColumn({ name: 'task_id' })
   task: Task;
 
-  @Column({})
-  expiry_date: Date;
+  @Column({ type: 'timestamp', nullable: true })
+  expiry_date: Date | null;
 
   @Column({ nullable: true })
   max_invitations: number;
