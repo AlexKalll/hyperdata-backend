@@ -93,17 +93,21 @@ export class TaskDistributionMonitoringService {
         },
       },
     });
-    const totalAssignedDataSets = (
-      await this.reviewerTaskService.getAssignedTasks(task_id)
-    ).length;
+    const assignedIds = new Set(
+      await this.reviewerTaskService.getAssignedTasks(task_id),
+    );
     const totalReviewedDataSets = allDataSets.filter(
       (dS) => dS.status !== 'Pending',
     ).length;
-    const totalPendingDataSets = allDataSets.filter(
-      (dS) => dS.status === 'Pending',
+    const pendingDataSets = allDataSets.filter((dS) => dS.status === 'Pending');
+    // Count actual pending datasets, not duplicate, expired or reviewed IDs
+    // left in assignment records.
+    const totalAssignedDataSets = pendingDataSets.filter((dataSet) =>
+      assignedIds.has(dataSet.id),
     ).length;
-    const totalUnAssignedDataSets =
-      totalPendingDataSets - totalAssignedDataSets;
+    const totalUnAssignedDataSets = pendingDataSets.filter(
+      (dataSet) => !assignedIds.has(dataSet.id),
+    ).length;
 
     return {
       totalAssignedDataSets,
@@ -147,11 +151,15 @@ export class TaskDistributionMonitoringService {
           FROM users u
           LEFT JOIN (
             SELECT 
-              reviewer_id, 
-              SUM(array_length(data_set_ids, 1)) AS pending_count
-            FROM task_distribution.reviewer_tasks
-            WHERE task_id = $2
-            GROUP BY reviewer_id
+              rt.reviewer_id,
+              COUNT(DISTINCT ds.id) AS pending_count
+            FROM task_distribution.reviewer_tasks rt
+            CROSS JOIN LATERAL unnest(rt.data_set_ids) AS assigned(data_set_id)
+            INNER JOIN data_set ds ON ds.id::text = assigned.data_set_id
+            INNER JOIN micro_task mt ON mt.id = ds.micro_task_id
+            WHERE rt.task_id = $2 AND mt.task_id = $2
+              AND rt.expire_date > NOW() AND ds.status = 'Pending'
+            GROUP BY rt.reviewer_id
           ) rt ON rt.reviewer_id = u.id
           LEFT JOIN (
   SELECT 
@@ -159,7 +167,7 @@ export class TaskDistributionMonitoringService {
     COUNT(*) AS reviewed_count
   FROM data_set ds
   INNER JOIN micro_task mt ON mt.id = ds.micro_task_id 
-  WHERE mt.task_id = $2                               
+  WHERE mt.task_id = $2 AND ds.status <> 'Pending'
   GROUP BY ds.reviewer_id
 ) d ON d.reviewer_id = u.id
           WHERE u.id = ANY($1);

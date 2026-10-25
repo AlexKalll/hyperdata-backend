@@ -74,6 +74,7 @@ export class AuthService {
     const { access_token, refresh_token } = await this.generateToken(
       user.id,
       user.email,
+      user.must_change_password,
     );
     const userDetail = UserSanitize.from(user);
     return { user: userDetail, access_token, refresh_token };
@@ -129,13 +130,15 @@ export class AuthService {
     const { access_token, refresh_token } = await this.generateToken(
       user.id,
       user.email,
+      user.must_change_password,
     );
     this.eventEmitter.emit(ActionEvents.USER_LOGGED_IN, {
       user_id: user.id,
       device_token: credential.device_token,
       device_type: credential.device_type,
     });
-    return { user, access_token, refresh_token };
+    const { password: _password, ...safeUser } = user;
+    return { user: safeUser, access_token, refresh_token };
   }
   /**
    * Refreshes an access token and refresh token based on the given refresh token
@@ -151,7 +154,7 @@ export class AuthService {
         where: { id: userId },
       });
       if (!user || !user.is_active) throw new UnauthorizedException();
-      return this.generateToken(user.id, user.email);
+      return this.generateToken(user.id, user.email, user.must_change_password);
     } catch (error) {
       throw new UnauthorizedException();
     }
@@ -285,7 +288,17 @@ export class AuthService {
   async generateToken(
     id: string,
     email?: string,
+    mustChangePassword = false,
   ): Promise<{ access_token: string; refresh_token: string }> {
+    if (mustChangePassword) {
+      return {
+        access_token: this.jwtService.sign(
+          { sub: id, email, passwordChangeOnly: true },
+          { expiresIn: '15m' },
+        ),
+        refresh_token: '',
+      };
+    }
     const access_token = this.jwtService.sign({ sub: id, email: email });
     const refresh_token = await this.refreshSessions.create(id);
     return { access_token, refresh_token };

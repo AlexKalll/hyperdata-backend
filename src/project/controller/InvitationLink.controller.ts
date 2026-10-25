@@ -6,6 +6,7 @@ import {
   Post,
   Query,
   UseGuards,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
@@ -28,10 +29,15 @@ export class InivitationController {
 
   @Post('/accept-invite/:invitation_id')
   async findUserInvitationLinks(
-    @Param('invitation_id') invitation_id: string,
+    @Param('invitation_id', ParseUUIDPipe) invitation_id: string,
     @Body() userData: AcceptInvitationDto,
   ) {
     return this.invitationLinkService.acceptInvitation(invitation_id, userData);
+  }
+
+  @Get('/:id/registration-options')
+  async registrationOptions(@Param('id', ParseUUIDPipe) id: string) {
+    return this.invitationLinkService.registrationOptions(id);
   }
 
   @Get('/project/:project_id')

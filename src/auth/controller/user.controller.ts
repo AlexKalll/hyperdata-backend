@@ -15,6 +15,7 @@ import {
   ParseUUIDPipe,
   NotFoundException,
   ValidationPipe,
+  SetMetadata,
 } from '@nestjs/common';
 import { UserService } from '../service/User.service';
 import {
@@ -94,11 +95,10 @@ export class UsersController {
 
     try {
       // Call UserService to create user
-      const user = await this.usersService.create(body, queryRunner);
+      const user = await this.usersService.createManagedUser(body, queryRunner);
       // Commit transaction if everything is successful
       await queryRunner.commitTransaction();
-      user.password = '_'; // Remove password from response
-      return user;
+      return UserSanitize.from(user);
     } catch (error) {
       await queryRunner.rollbackTransaction(); // Rollback on failure
       throw error;
@@ -135,6 +135,7 @@ export class UsersController {
   }
 
   @Get('me')
+  @SetMetadata('allowPasswordChange', true)
   @ApiResponse({ status: 200, type: UserSanitize })
   @UseGuards(JwtAuthGuard, RolesGuard)
   async findMe(@Request() req): Promise<UserSanitize> {
@@ -531,6 +532,7 @@ export class UsersController {
     }
   }
   @Put('change-password')
+  @SetMetadata('allowPasswordChange', true)
   @UseGuards(JwtAuthGuard, RolesGuard)
   async achangePassword(@Body() body: ChangePasswordDto, @Request() req) {
     const user = req.user;

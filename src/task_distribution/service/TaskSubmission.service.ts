@@ -87,6 +87,7 @@ export class TaskSubmissionService {
       task_id,
       micro_task_ids,
       is_test,
+      task.require_contributor_test,
     );
     const contributorSubmittedDataSets = await this.dataSetService.findAll({
       where: { micro_task_id: In(micro_task_ids), contributor_id: user_id },
@@ -371,6 +372,7 @@ export class TaskSubmissionService {
       task_id,
       micro_task_ids,
       is_test,
+      task.require_contributor_test,
     );
     const contributorSubmittedDataSets = await this.dataSetService.findAll({
       where: { micro_task_id: In(micro_task_ids), contributor_id: user_id },
@@ -584,7 +586,13 @@ export class TaskSubmissionService {
     taskId: string,
     microTaskIds: string[],
     isTest: boolean,
+    requireContributorTest: boolean,
   ): Promise<MicroTask[]> {
+    if (isTest && !requireContributorTest) {
+      throw new BadRequestException(
+        'Contributor test is not required for this task',
+      );
+    }
     const uniqueIds = [...new Set(microTaskIds)];
     if (uniqueIds.length !== microTaskIds.length) {
       throw new BadRequestException(
@@ -607,6 +615,16 @@ export class TaskSubmissionService {
     }
     if (isTest) {
       return microTasks;
+    }
+    if (requireContributorTest) {
+      const userTask = await this.userTaskService.findOne({
+        where: { task_id: taskId, user_id: userId },
+      });
+      if (userTask?.status !== UserTaskStatus.ACTIVE) {
+        throw new ForbiddenException(
+          'Pass the required contributor test before submitting task work',
+        );
+      }
     }
     const assignment = await this.contributorMicroTaskService.findOne({
       where: { contributor_id: userId, task_id: taskId },

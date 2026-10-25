@@ -1,9 +1,16 @@
 // dataset.consumer.ts
 import { Injectable, Logger } from '@nestjs/common';
-import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
+import {
+  MessageErrorHandler,
+  RabbitSubscribe,
+} from '@golevelup/nestjs-rabbitmq';
+import { ConfirmChannel, Message } from 'amqplib';
+import { randomUUID } from 'crypto';
+import { isUUID } from 'class-validator';
+import { setTimeout as delay } from 'timers/promises';
 import { DataSet } from 'src/data_set/entities/DataSet.entity';
 import { DataSource, QueryRunner } from 'typeorm';
-import { ReviewerTaskService } from 'src/task_distribution/service/ReviewerTasks.service';
+import { ReviewerTasks } from 'src/task_distribution/enitities/ReviewerTasks.entity';
 import { UserTaskService } from 'src/project/service/UserTask.service';
 import { CacheService } from 'src/cache/CacheService.service';
 import { WalletService } from 'src/finance/service/Wallet.service';
@@ -16,6 +23,103 @@ import { UserTask } from 'src/project/entities/UserTask.entity';
 import { MicroTask } from 'src/data_set/entities/MicroTask.entity';
 import { checkIfMicroTasIskRejectedAndTotalAttempts } from 'src/utils/MicroTask.util';
 import { DataSetStatus } from 'src/utils/constants/DataSetStatus.constant';
+
+const datasetQueue = process.env.DATASET_RABBITMQ_QUEUE_NAME || 'dataset.queue';
+const retryDelays = [5000, 15000];
+const failureLogger = new Logger('DatasetFailureHandler');
+
+export const hasPassedAllContributorTests = (
+  testMicroTasks: MicroTask[],
+  contributorId: string,
+): boolean => {
+  if (testMicroTasks.length === 0) return false;
+
+  return testMicroTasks.every((microTask) => {
+    const contributorDataSets = (microTask.dataSets ?? []).filter(
+      (dataSet) => dataSet.contributor_id === contributorId,
+    );
+    if (contributorDataSets.length === 0) return false;
+
+    return (
+      checkIfMicroTasIskRejectedAndTotalAttempts(
+        { ...microTask, dataSets: contributorDataSets },
+        3,
+      ).acceptanceStatus === 'APPROVED'
+    );
+  });
+};
+
+// Preserve the original bytes (including malformed JSON), then acknowledge
+// only after the broker confirms the persistent copy in the failure queue.
+export const preserveFailedDatasetAction: MessageErrorHandler = async (
+  channel,
+  message,
+  error: unknown,
+) => {
+  const failedQueue = `${datasetQueue}.failed`;
+  const confirmChannel = channel as ConfirmChannel;
+  const messageId = randomUUID();
+  let returned = false;
+  const onReturn = (item: Message) => {
+    if (item.properties.messageId === messageId) returned = true;
+  };
+  try {
+    if (typeof confirmChannel.waitForConfirms !== 'function') {
+      throw new Error('Publisher confirms unavailable');
+    }
+    await channel.assertQueue(failedQueue, { durable: true });
+    channel.on('return', onReturn);
+    await new Promise<void>((resolve, reject) => {
+      confirmChannel.sendToQueue(
+        failedQueue,
+        message.content,
+        {
+          persistent: true,
+          mandatory: true,
+          messageId,
+          correlationId: message.properties.correlationId,
+          contentType: message.properties.contentType,
+          contentEncoding: message.properties.contentEncoding,
+          headers: {
+            ...message.properties.headers,
+            'x-original-queue': datasetQueue,
+            'x-original-message-id': message.properties.messageId || '',
+            'x-failed-at': new Date().toISOString(),
+            'x-failure-type':
+              error instanceof Error ? error.name : 'UnknownError',
+          },
+        },
+        (publishError: unknown) => {
+          if (publishError)
+            reject(
+              publishError instanceof Error
+                ? publishError
+                : new Error('Publish failed'),
+            );
+          else if (returned) reject(new Error('Failure queue is unavailable'));
+          else resolve();
+        },
+      );
+    });
+    channel.ack(message);
+    failureLogger.error(`Dataset action preserved in ${failedQueue}`);
+  } catch {
+    // If the broker cannot retain the copy, keep the original message. Never
+    // fall back to an immediate requeue loop, even during a broker outage.
+    failureLogger.error(
+      'Unable to preserve dataset action; retrying after 30s',
+    );
+    await delay(30000);
+    try {
+      channel.nack(message, false, true);
+    } catch {
+      // A closed channel automatically returns unacknowledged messages.
+    }
+  } finally {
+    channel.removeListener('return', onReturn);
+  }
+};
+
 @Injectable()
 export class DatasetConsumer {
   private readonly logger = new Logger(DatasetConsumer.name);
@@ -23,7 +127,6 @@ export class DatasetConsumer {
   constructor(
     // Inject necessary services here
     private readonly dataSource: DataSource,
-    private readonly reviewerTaskService: ReviewerTaskService,
     private readonly userTaskService: UserTaskService,
     private readonly cacheService: CacheService,
     private readonly scoreService: ScoreValueService,
@@ -36,33 +139,67 @@ export class DatasetConsumer {
   @RabbitSubscribe({
     exchange: process.env.DATASET_RABBITMQ_EXCHANGE_NAME || 'dataset.exchange',
     routingKey: process.env.DATASET_RABBITMQ_ROUTING_KEY || 'dataset.action',
-    queue: process.env.DATASET_RABBITMQ_QUEUE_NAME || 'dataset.queue',
+    queue: datasetQueue,
     queueOptions: {
       durable: true,
+      channel: 'dataset-actions',
     },
+    errorHandler: preserveFailedDatasetAction,
   })
   async handleDatasetAction(message: {
     datasetId: string;
     action: 'APPROVED' | 'REJECTED';
     timestamp: string;
   }): Promise<void> {
-    this.logger.log(`Processing dataset ${message.datasetId}`);
-
-    if (message.action === 'REJECTED') {
-      await this.handleRejected(message.datasetId);
+    if (
+      !message ||
+      typeof message.datasetId !== 'string' ||
+      !isUUID(message.datasetId) ||
+      !['APPROVED', 'REJECTED'].includes(message.action)
+    ) {
+      throw new Error('Invalid dataset action');
     }
 
-    if (message.action === 'APPROVED') {
-      await this.handleApproved(message.datasetId);
+    // Keep the durable delivery unacknowledged during backoff. Three attempts
+    // per delivery; persistent failures then go to the failure queue above.
+    for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
+      try {
+        if (message.action === 'REJECTED') {
+          await this.handleRejected(message.datasetId);
+        } else {
+          await this.handleApproved(message.datasetId);
+        }
+        return;
+      } catch (error) {
+        if (attempt === retryDelays.length) throw error;
+        this.logger.warn(`Dataset action retry ${attempt + 1} scheduled`);
+        await delay(retryDelays[attempt]);
+      }
     }
-    return;
+  }
+
+  private async removeReviewedAssignment(
+    dataSet: DataSet,
+    queryRunner: QueryRunner,
+  ): Promise<void> {
+    // The review endpoint already authorized and recorded this decision.
+    // Settlement may run after assignment expiry or cleanup; removal must be
+    // idempotent and must not re-authorize an already completed review.
+    await queryRunner.manager
+      .createQueryBuilder()
+      .update(ReviewerTasks)
+      .set({ data_set_ids: () => 'array_remove(data_set_ids, :dataSetId)' })
+      .where('reviewer_id = :reviewerId', { reviewerId: dataSet.reviewer_id })
+      .andWhere('task_id = :taskId', { taskId: dataSet.microTask.task.id })
+      .andWhere(':dataSetId = ANY(data_set_ids)', { dataSetId: dataSet.id })
+      .execute();
   }
 
   private async handleRejected(datasetId: string) {
     const queryRunner: QueryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
     try {
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
       //  Get the dataset
       const lockedDataSet = await queryRunner.manager.findOne(DataSet, {
         where: { id: datasetId },
@@ -92,12 +229,7 @@ export class DatasetConsumer {
         return;
       }
       //  Remove Assignment from reviewer
-      await this.reviewerTaskService.checkAndRemoveDataSetFromReviewer(
-        dataSet.reviewer.id,
-        dataSet.microTask.task.id,
-        dataSet.id,
-        queryRunner,
-      );
+      await this.removeReviewedAssignment(dataSet, queryRunner);
       //  const membership=await this.userTaskService.findOne({
       //       where:{
       //         user_id: dataSet.reviewer.id,
@@ -161,10 +293,8 @@ export class DatasetConsumer {
       );
       await queryRunner.commitTransaction();
     } catch (err) {
-      await queryRunner.rollbackTransaction();
-      this.logger.error(
-        `Error processing dataset ${datasetId}: ${err.message}`,
-      );
+      if (queryRunner.isTransactionActive)
+        await queryRunner.rollbackTransaction();
       throw err;
     } finally {
       await queryRunner.release();
@@ -173,9 +303,9 @@ export class DatasetConsumer {
 
   private async handleApproved(datasetId: string): Promise<void> {
     const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
     try {
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
       // get data sets
       const lockedDataSet = await queryRunner.manager.findOne(DataSet, {
         where: { id: datasetId },
@@ -205,12 +335,7 @@ export class DatasetConsumer {
         return;
       }
       // remove reviewer assignment
-      await this.reviewerTaskService.checkAndRemoveDataSetFromReviewer(
-        dataSet.reviewer.id,
-        dataSet.microTask.task.id,
-        datasetId,
-        queryRunner,
-      );
+      await this.removeReviewedAssignment(dataSet, queryRunner);
       const taskPayment = dataSet?.microTask.task.payment;
       const memberContributor: UserTask | null =
         await this.userTaskService.findOne({
@@ -237,55 +362,30 @@ export class DatasetConsumer {
         dataSet.microTask.task.require_contributor_test &&
         dataSet.microTask.is_test
       ) {
-        // check if all the test micro tasks are approved
+        // Require an approved submission for every test microtask before
+        // activating the contributor. Loading only test tasks with existing
+        // submissions would let a partial exam appear complete.
         const contributorTestMicroTasks: MicroTask[] =
           await this.microTaskService.findAllTestMicroTasks({
             where: {
               task_id: dataSet.microTask.task.id,
-              is_test: true,
-              dataSets: {
-                contributor_id: dataSet.contributor_id,
-              },
             },
             relations: {
               dataSets: true,
             },
           });
-        if (contributorTestMicroTasks.length == 1) {
+        if (
+          hasPassedAllContributorTests(
+            contributorTestMicroTasks,
+            dataSet.contributor_id,
+          )
+        ) {
           await this.taskService.activateContributorToTask(create, queryRunner);
-        } else {
-          let has_pending = false;
-          let has_rejected = false;
-          for (const task of contributorTestMicroTasks) {
-            const statusOfMicroTask =
-              checkIfMicroTasIskRejectedAndTotalAttempts(task, 3);
-            if (task.id == dataSet.micro_task_id) {
-              continue;
-            }
-            if (
-              statusOfMicroTask.acceptanceStatus === 'PENDING' ||
-              statusOfMicroTask.acceptanceStatus === 'NOT_STARTED'
-            ) {
-              has_pending = true;
-              break;
-            }
-            if (statusOfMicroTask.acceptanceStatus === 'REJECTED') {
-              has_rejected = true;
-              break;
-            }
-            // break;
-          }
-          if (!has_rejected && !has_pending) {
-            await this.taskService.activateContributorToTask(
-              create,
-              queryRunner,
-            );
-            await this.cacheService.clearContributorTaskCache(
-              dataSet.contributor_id,
-              dataSet.microTask.task_id,
-            );
-          }
         }
+        await this.cacheService.clearContributorTaskCache(
+          dataSet.contributor_id,
+          dataSet.microTask.task_id,
+        );
       }
 
       // credit contributor and reviewer wallet
@@ -332,7 +432,8 @@ export class DatasetConsumer {
       await queryRunner.commitTransaction();
       return;
     } catch (error) {
-      await queryRunner.rollbackTransaction();
+      if (queryRunner.isTransactionActive)
+        await queryRunner.rollbackTransaction();
       throw error;
     } finally {
       await queryRunner.release();

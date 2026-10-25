@@ -23,7 +23,7 @@ describe('UsersController', () => {
 
   beforeEach(() => {
     usersService = {
-      create: jest.fn(),
+      createManagedUser: jest.fn(),
       signUp: jest.fn(),
       verifyAccount: jest.fn(),
       firstUpdate: jest.fn(),
@@ -56,18 +56,21 @@ describe('UsersController', () => {
   });
 
   it('should create users inside a transaction and mask the password', async () => {
-    usersService.create.mockResolvedValue({ id: 'user-1', password: 'hashed' });
+    usersService.createManagedUser.mockResolvedValue({
+      id: 'user-1',
+      password: 'hashed',
+    });
 
     await expect(
       controller.create({ email: 'user@example.com' } as any),
-    ).resolves.toEqual({
+    ).resolves.toMatchObject({
       id: 'user-1',
-      password: '_',
+      must_change_password: false,
     });
 
     expect(queryRunner.connect).toHaveBeenCalled();
     expect(queryRunner.startTransaction).toHaveBeenCalled();
-    expect(usersService.create).toHaveBeenCalledWith(
+    expect(usersService.createManagedUser).toHaveBeenCalledWith(
       { email: 'user@example.com' },
       queryRunner,
     );
@@ -77,7 +80,7 @@ describe('UsersController', () => {
 
   it('should rollback and rethrow when user creation fails', async () => {
     const error = new Error('create failed');
-    usersService.create.mockRejectedValue(error);
+    usersService.createManagedUser.mockRejectedValue(error);
 
     await expect(
       controller.create({ email: 'user@example.com' } as any),

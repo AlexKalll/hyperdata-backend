@@ -57,8 +57,8 @@ export class InvitationLinkSanitize {
   project_id: string;
   @ApiProperty()
   task_id: string;
-  @ApiProperty()
-  expiry_date: Date;
+  @ApiProperty({ type: Date, nullable: true })
+  expiry_date: Date | null;
   @ApiProperty()
   max_invitations: number;
   @ApiProperty()
