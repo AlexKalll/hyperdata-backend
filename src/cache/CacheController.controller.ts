@@ -14,7 +14,7 @@ export class CacheController {
 
   @Delete('all')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   async clearAllCache(@Req() req) {
     await this.cacheService.clearAllCache();
     return { message: 'All cache cleared successfully' };

@@ -82,7 +82,7 @@ export class TaskController {
   ) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PROJECT_MANAGER)
   async create(@Body() taskData: CreateTaskDto, @Request() req) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -133,7 +133,7 @@ export class TaskController {
     }
   }
   @Post('/:id/add-instruction')
-  @Roles(Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PROJECT_MANAGER)
   @UseInterceptors(FileInterceptor('image', { storage: multerImageS3Storage }))
   async addTaskInstruction(
     @UploadedFile() file: any,
@@ -152,7 +152,7 @@ export class TaskController {
     });
   }
   @Post('/:id/assign-facilitator')
-  @Roles(Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PROJECT_MANAGER)
   async assignFacilitator(
     @Param('id') id: string,
     @Body()
@@ -186,7 +186,7 @@ export class TaskController {
     }
   }
   @Post('/:id/assign-reviewer')
-  @Roles(Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PROJECT_MANAGER)
   async assignOrInviteReviewer(
     @Param('id') id: string,
     @Body()
@@ -221,7 +221,7 @@ export class TaskController {
     }
   }
   @Post('/:id/assign-contributor')
-  @Roles(Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PROJECT_MANAGER)
   async assignContributor(
     @Param('id') id: string,
     @Body()
@@ -252,7 +252,7 @@ export class TaskController {
     }
   }
   @Post('/:id/assign-contributor-to-facilitator')
-  @Roles(Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PROJECT_MANAGER)
   async assingContributorToFacilitator(
     @Param('id') id: string,
     @Body()

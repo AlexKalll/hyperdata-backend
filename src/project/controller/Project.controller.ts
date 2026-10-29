@@ -65,7 +65,7 @@ export class ProjectController {
   ) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiConsumes('multipart/form-data')
   @UsePipes(new ValidationPipe({ whitelist: true }))
   @ApiBody({
@@ -284,7 +284,7 @@ export class ProjectController {
   }
 
   @Post('/assign-manager')
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   async assignProjectManager(
     @Body()
     projectManager: AssignProjectManagerDto,

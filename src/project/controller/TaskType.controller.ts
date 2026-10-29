@@ -29,7 +29,7 @@ export class TaskTypeController {
   constructor(private readonly taskTypeService: TaskTypeService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @UsePipes(new ZodValidationPipe(CreateTaskTypeDto))
   async create(@Body() taskTypeData: CreateTaskTypeDto, @Request() req) {
     return this.taskTypeService.create({
