@@ -62,7 +62,7 @@ export class FacilitatorController {
       ],
     },
   })
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async getUnassignedContributors(
     @Param('task_id') task_id: string,
     @Query() searchSchema: GetUsersFilterDto,
@@ -120,7 +120,7 @@ export class FacilitatorController {
 
   @Delete('remove-contributors/:facilitator_id')
   @ApiOperation({ summary: 'Remove contributors from facilitator' })
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async removeContributorFromFacilitator(
     @Param('facilitator_id') facilitator_id: string,
     @Body() taskTypeData: RemoveContributorFromFacilitatorDto,
@@ -139,7 +139,7 @@ export class FacilitatorController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'facilitator_id', required: true, type: String })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.PROJECT_MANAGER, Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.PROJECT_MANAGER, Role.ADMIN)
   async findTaskFacilitatorContributors(
     @Param('task_id') task_id: string,
     @Query() facilitatorDto: FindFacilitatorContributorsDto,
@@ -179,7 +179,7 @@ export class FacilitatorController {
   }
 
   @Post('/:task_id/automatic-assign-contributor-to-facilitator')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async assingContributorToFacilitatorAutomatic(
     @Param('task_id') task_id: string,
     @Request() req,

@@ -64,7 +64,7 @@ export class UserService {
     this.paginationService = new PaginationService<User>(this.userRepository);
   }
   async onModuleInit() {
-    await this.createSuperAdminIfNotExists();
+    await this.createRolesIfNotExists();
   }
 
   /**
@@ -150,14 +150,11 @@ export class UserService {
   }
   /**
    * Retrieves multiple users from the database.
-   * Omits the superadmin user.
    * @param query The query to filter users.
    * @param queryRunner The query runner to use for the query.
    * @returns A promise resolving to an array of users matching the query.
    */
   async findMany(query: QueryOptions<User>, queryRunner?: QueryRunner) {
-    // omit the superadmin
-    query.where = { ...query.where, first_name: Not('SuperAdmin') };
     if (queryRunner) {
       const manager = queryRunner.manager;
       return await manager.find(User, query);
@@ -391,23 +388,6 @@ export class UserService {
     query: QueryOptions<User>,
     paginationDto: PaginationDto,
   ): Promise<PaginatedResult<User>> {
-    // check if the query is array
-    const superAdminRole = await this.roleService.findOne({
-      name: RoleConstant.SUPER_ADMIN,
-    });
-    const superAdminRole_id = superAdminRole?.id || '';
-    if (Array.isArray(query.where)) {
-      // check if a role_id is present in the query object array
-      const role_id = query.where.find((item) => item.role_id);
-      if (!role_id) {
-        query.where.push({ role_id: Not(superAdminRole_id) }); //[...query.where,{first_name:Not('SuperAdmin')}];
-      }
-      // query.where.push({role_id:Not(superAdminRole_id)}) //[...query.where,{first_name:Not('SuperAdmin')}];
-    } else {
-      if (!query.where?.role_id) {
-        query.where = { ...query.where, role_id: Not(superAdminRole_id) };
-      }
-    }
     return this.paginationService.paginateWithOptionQuery(
       paginationDto,
       'user',
@@ -748,24 +728,19 @@ export class UserService {
    * Creates any missing roles on startup.
    * @returns A promise resolving to nothing.
    */
-  private async createSuperAdminIfNotExists() {
+  private async createRolesIfNotExists() {
     await Promise.all(
-      [
-        'SuperAdmin',
-        'Admin',
-        'ProjectManager',
-        'Reviewer',
-        'Facilitator',
-        'Contributor',
-      ].map(async (name) => {
-        const role = await this.roleService.findOne({ name });
-        if (!role) {
-          await this.roleService.create({
-            name,
-            description: `${name} Role`,
-          });
-        }
-      }),
+      ['Admin', 'ProjectManager', 'Reviewer', 'Facilitator', 'Contributor'].map(
+        async (name) => {
+          const role = await this.roleService.findOne({ name });
+          if (!role) {
+            await this.roleService.create({
+              name,
+              description: `${name} Role`,
+            });
+          }
+        },
+      ),
     );
   }
   /**

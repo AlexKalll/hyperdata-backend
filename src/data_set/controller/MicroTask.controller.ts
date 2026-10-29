@@ -69,7 +69,7 @@ export class MicroTaskController {
   ) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async create(@Body() microTaskDto: CreateMicroTaskDto, @Request() req) {
     const microTask = await this.microTaskService.createTextMicroTask({
       ...microTaskDto,
@@ -89,7 +89,7 @@ export class MicroTaskController {
   }
 
   @Post('/:task_id/import_csv')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @ApiParam({ name: 'task_id', type: 'string' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -158,7 +158,7 @@ export class MicroTaskController {
   }
 
   @Post('/:task_id/import_from_other_task')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @ApiParam({ name: 'task_id', type: 'string' })
   async importFromOtherTask(
     @Param('task_id') task_id: string,
@@ -214,7 +214,7 @@ export class MicroTaskController {
   }
 
   @Get('/:task_id/export_csv')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @ApiParam({ name: 'task_id', type: 'string' })
   @UseInterceptors(FileInterceptor('file', { storage: multerCSVS3Storage }))
   async exportCSV(
@@ -283,7 +283,7 @@ export class MicroTaskController {
   }
 
   @Post('/:task_id/audio')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @ApiParam({ name: 'task_id', type: 'string' })
   @UseInterceptors(
     FileInterceptor('file', {
@@ -366,7 +366,7 @@ export class MicroTaskController {
   }
 
   @Post('/:task_id/audios')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @ApiParam({ name: 'task_id', type: 'string' })
   @UseInterceptors(
     FilesInterceptor(
@@ -480,7 +480,7 @@ export class MicroTaskController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @UsePipes(new ZodValidationPipe())
   async findPaginate(@Query() searchSchema: GetMicroTasksDto, @Request() req) {
     const page = searchSchema.page;
@@ -500,7 +500,7 @@ export class MicroTaskController {
 
   @Get('all')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @UsePipes(new ZodValidationPipe())
   async findAll(@Request() req) {
     return this.microTaskService.findAll({});
@@ -518,13 +518,7 @@ export class MicroTaskController {
   }
   @Get('task/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(
-    Role.ADMIN,
-    Role.SUPER_ADMIN,
-    Role.PROJECT_MANAGER,
-    Role.REVIEWER,
-    Role.CONTRIBUTOR,
-  )
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER, Role.REVIEWER, Role.CONTRIBUTOR)
   // @UsePipes(new ZodValidationPipe())
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -556,7 +550,7 @@ export class MicroTaskController {
 
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @UsePipes(new ZodValidationPipe())
   async findOne(@Param('id') id: string, @Request() req) {
     return this.microTaskService.findOne({ where: { id } });
@@ -564,7 +558,7 @@ export class MicroTaskController {
 
   @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async update(
     @Param('id') id: string,
     @Body() microTaskData: UpdateMicroTaskDto,
@@ -587,7 +581,7 @@ export class MicroTaskController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @UsePipes(new ZodValidationPipe())
   async remove(@Param('id') id: string, @Request() req) {
     return this.microTaskService.remove(id);

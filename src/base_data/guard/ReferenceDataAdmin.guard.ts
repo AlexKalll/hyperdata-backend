@@ -13,7 +13,7 @@ export class ReferenceDataAdminGuard implements CanActivate {
     if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
       return true;
     }
-    if (![Role.ADMIN, Role.SUPER_ADMIN].includes(request.user?.role?.name)) {
+    if (request.user?.role?.name !== Role.ADMIN) {
       throw new ForbiddenException('Administrator access is required');
     }
     return true;

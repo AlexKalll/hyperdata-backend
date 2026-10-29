@@ -29,7 +29,7 @@ export class TaskTypeController {
   constructor(private readonly taskTypeService: TaskTypeService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @UsePipes(new ZodValidationPipe(CreateTaskTypeDto))
   async create(@Body() taskTypeData: CreateTaskTypeDto, @Request() req) {
     return this.taskTypeService.create({
@@ -60,7 +60,7 @@ export class TaskTypeController {
 
   @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @UsePipes(new ZodValidationPipe())
   async update(
     @Param('id') id: string,
@@ -75,7 +75,7 @@ export class TaskTypeController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @UsePipes(new ZodValidationPipe())
   async remove(@Param('id') id: string, @Request() req) {
     return this.taskTypeService.remove(id);

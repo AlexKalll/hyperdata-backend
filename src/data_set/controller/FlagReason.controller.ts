@@ -29,7 +29,7 @@ export class RejectionReasonController {
   constructor(private readonly flagReasonService: FlagReasonService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async create(@Body() createFlagDto: CreateFlagTypeDto, @Request() req) {
     return this.flagReasonService.create({ ...createFlagDto });
   }
@@ -38,7 +38,7 @@ export class RejectionReasonController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @UsePipes(new ZodValidationPipe())
   async findPaginate(@Query() paginateDto: PaginationDto, @Request() req) {
     return this.flagReasonService.findPaginate({}, paginateDto);
@@ -46,13 +46,7 @@ export class RejectionReasonController {
 
   @Get('all')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(
-    Role.ADMIN,
-    Role.SUPER_ADMIN,
-    Role.PROJECT_MANAGER,
-    Role.REVIEWER,
-    Role.CONTRIBUTOR,
-  )
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER, Role.REVIEWER, Role.CONTRIBUTOR)
   async findAll(@Request() req) {
     return this.flagReasonService.findAll({
       relations: { flagType: true },
@@ -61,14 +55,14 @@ export class RejectionReasonController {
 
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER, Role.REVIEWER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER, Role.REVIEWER)
   async findOne(@Param('id') id: string, @Request() req) {
     return this.flagReasonService.findOne({ where: { id } });
   }
 
   @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async update(
     @Param('id') id: string,
     @Body() updateFlagDto: UpdateFlagTypeDto,
@@ -79,7 +73,7 @@ export class RejectionReasonController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @UsePipes(new ZodValidationPipe())
   async remove(@Param('id') id: string, @Request() req) {
     return this.flagReasonService.remove(id);

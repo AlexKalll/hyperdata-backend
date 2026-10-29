@@ -63,7 +63,7 @@ export class DataSetController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @UsePipes(new ZodValidationPipe())
   @ApiResponse({
     status: 200,
@@ -108,7 +108,7 @@ export class DataSetController {
 
   @Get('all')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @UsePipes(new ZodValidationPipe())
   @ApiResponse({
     status: 200,
@@ -210,7 +210,7 @@ export class DataSetController {
 
   @Get('task/:task_id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER, Role.FACILITATOR)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER, Role.FACILITATOR)
   @ApiResponse({
     status: 200,
     schema: {
@@ -260,13 +260,7 @@ export class DataSetController {
     },
   })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(
-    Role.ADMIN,
-    Role.SUPER_ADMIN,
-    Role.PROJECT_MANAGER,
-    Role.REVIEWER,
-    Role.CONTRIBUTOR,
-  )
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER, Role.REVIEWER, Role.CONTRIBUTOR)
   async findByMicroTask(
     @Param('micro_task_id', ParseUUIDPipe) id: string,
     @Query() searchSchem: GetDataSetDto,
@@ -319,7 +313,7 @@ export class DataSetController {
 
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @UsePipes(new ZodValidationPipe())
   async findOne(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
     return this.dataSetService.findOne({
@@ -384,7 +378,6 @@ export class DataSetController {
   // @UseGuards(JwtAuthGuard, RolesGuard)
   // @Roles(
   //   Role.ADMIN,
-  //   Role.SUPER_ADMIN,
   //   Role.PROJECT_MANAGER,
   //   Role.REVIEWER,
   //   Role.FACILITATOR,
@@ -492,7 +485,7 @@ export class DataSetController {
 
   @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @UsePipes(new ZodValidationPipe())
   async update(
     @Param('id') id: string,
@@ -507,7 +500,7 @@ export class DataSetController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.CONTRIBUTOR)
+  @Roles(Role.ADMIN, Role.CONTRIBUTOR)
   @UsePipes(new ZodValidationPipe())
   async remove(@Param('id') id: string, @Request() req) {
     const contributorId =

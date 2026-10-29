@@ -8,7 +8,7 @@ import { ProjectService } from 'src/project/service/Project.service';
 import { TaskService } from 'src/project/service/Task.service';
 
 @Injectable()
-export class SuperAdminStatistics {
+export class AdminStatistics {
   constructor(
     private readonly dataSetService: DataSetService,
     private readonly microTaskService: MicroTaskService,

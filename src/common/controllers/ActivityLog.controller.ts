@@ -60,7 +60,7 @@ export class ActivityLogController {
   @ApiOperation({ summary: 'Get all activity logs by user id' })
   @ApiQuery({ type: PaginationDto })
   @ApiParam({ name: 'user_id', type: String, required: true })
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PROJECT_MANAGER, Role.FACILITATOR)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER, Role.FACILITATOR)
   async findByUserId(
     @Param('user_id', ParseUUIDPipe) user_id: string,
     @Query() paginateDto: ActivityLogDto,

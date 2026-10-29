@@ -35,12 +35,12 @@ type DemoUserDefinition = {
 export const DEMO_USERS: DemoUserDefinition[] = [
   {
     email: 'admin@gmail.com',
-    first_name: 'SuperAdmin',
+    first_name: 'Admin',
     middle_name: 'Demo',
     last_name: 'One',
     phone_number: '',
     national_id: 'E2E-SUPER-001',
-    role: 'SuperAdmin',
+    role: 'Admin',
     birth_date: '1985-01-15',
     gender: 'Male',
   },

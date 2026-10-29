@@ -65,7 +65,7 @@ export class ProjectController {
   ) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @ApiConsumes('multipart/form-data')
   @UsePipes(new ValidationPipe({ whitelist: true }))
   @ApiBody({
@@ -142,7 +142,7 @@ export class ProjectController {
 
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @UsePipes(new ZodValidationPipe())
   @ApiExtraModels(PaginatedResult, ProjectSanitize)
   @ApiResponse({
@@ -174,7 +174,7 @@ export class ProjectController {
 
   @Get('archived')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @UsePipes(new ZodValidationPipe())
   @ApiExtraModels(PaginatedResult, ProjectSanitize)
   @ApiResponse({
@@ -229,7 +229,7 @@ export class ProjectController {
 
   @Get('all')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @UsePipes(new ZodValidationPipe())
   @ApiResponse({ type: [ProjectSanitize] })
   async findAll(
@@ -284,7 +284,7 @@ export class ProjectController {
   }
 
   @Post('/assign-manager')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   async assignProjectManager(
     @Body()
     projectManager: AssignProjectManagerDto,
@@ -315,7 +315,7 @@ export class ProjectController {
   }
   @Get(':id/members')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @ApiExtraModels(PaginatedResult, UserTaskSanitize)
   @ApiResponse({
     status: 200,
@@ -355,7 +355,7 @@ export class ProjectController {
   }
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @UsePipes(new ZodValidationPipe())
   @ApiResponse({ type: ProjectSanitize })
   async findOne(@Param('id') id: string, @Request() req) {
@@ -372,7 +372,7 @@ export class ProjectController {
 
   @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @UsePipes(new ZodValidationPipe())
   // @ApiConsumes('multipart/form-data')
   // @ApiBody({
@@ -419,7 +419,7 @@ export class ProjectController {
 
   @Patch('archive-toggle/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async archiveToggle(@Param('id') id: string, @Request() req) {
     await this.assertProjectManager(id, req);
     return this.projectService.archiveToggle(id);
@@ -440,7 +440,7 @@ export class ProjectController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @UsePipes(new ZodValidationPipe())
   async remove(@Param('id') id: string, @Request() req) {
     return this.projectService.remove(id);

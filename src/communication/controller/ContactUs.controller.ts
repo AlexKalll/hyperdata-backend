@@ -34,7 +34,7 @@ export class ContactUsController {
 
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Get all contact-us' })
   @UsePipes(new ZodValidationPipe())
   async findAll(@Query() paginationDto: PaginationDto) {
@@ -43,7 +43,7 @@ export class ContactUsController {
 
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Get a contact-us by id' })
   @UsePipes(new ZodValidationPipe())
   async findOne(@Param('id') id: string) {
@@ -52,7 +52,7 @@ export class ContactUsController {
 
   @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Update a contact-us by id' })
   @UsePipes(new ZodValidationPipe())
   async update(
@@ -64,7 +64,7 @@ export class ContactUsController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Delete a contact-us by id' })
   @UsePipes(new ZodValidationPipe())
   async remove(@Param('id') id: string) {
