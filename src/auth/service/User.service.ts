@@ -752,6 +752,7 @@ export class UserService {
     await Promise.all(
       [
         'SuperAdmin',
+        'Admin',
         'ProjectManager',
         'Reviewer',
         'Facilitator',

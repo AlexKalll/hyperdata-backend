@@ -15,6 +15,10 @@ export default class Role1744707155039 implements Seeder {
           description: 'Super Admin',
         },
         {
+          name: 'Admin',
+          description: 'Admin',
+        },
+        {
           name: 'Contributor',
           description: 'Contributor',
         },
