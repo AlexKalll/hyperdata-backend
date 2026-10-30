@@ -29,7 +29,7 @@ export class RejectionReasonController {
   ) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async create(@Body() rejectDto: CreateRejectionReasonDto, @Request() req) {
     return this.rejectionReasonService.create({ ...rejectDto });
   }
@@ -38,20 +38,14 @@ export class RejectionReasonController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async findPaginate(@Query() paginateDto: PaginationDto, @Request() req) {
     return this.rejectionReasonService.findPaginate({}, paginateDto);
   }
 
   @Get('all')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(
-    Role.ADMIN,
-    Role.SUPER_ADMIN,
-    Role.PROJECT_MANAGER,
-    Role.REVIEWER,
-    Role.CONTRIBUTOR,
-  )
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER, Role.REVIEWER, Role.CONTRIBUTOR)
   async findAll(@Request() req) {
     return this.rejectionReasonService.findAll({
       relations: { rejectionType: true },
@@ -60,14 +54,14 @@ export class RejectionReasonController {
 
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER, Role.REVIEWER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER, Role.REVIEWER)
   async findOne(@Param('id') id: string, @Request() req) {
     return this.rejectionReasonService.findOne({ where: { id } });
   }
 
   @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async update(
     @Param('id') id: string,
     @Body() rejectionReason: RejectionReason,
@@ -78,7 +72,7 @@ export class RejectionReasonController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async remove(@Param('id') id: string, @Request() req) {
     return this.rejectionReasonService.remove(id);
   }

@@ -80,7 +80,7 @@ export class AuthController {
 
   @Get('roles')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   getRoles() {
     return this.authService.getAllRoles();
   }

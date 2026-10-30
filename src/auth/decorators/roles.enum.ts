@@ -4,5 +4,4 @@ export enum Role {
   FACILITATOR = 'Facilitator',
   PROJECT_MANAGER = 'ProjectManager',
   ADMIN = 'Admin',
-  SUPER_ADMIN = 'SuperAdmin',
 }

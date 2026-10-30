@@ -33,7 +33,7 @@ export class TaskDistributionMonitoringController {
 
   @Get('statistics/:task_id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.PROJECT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.PROJECT_MANAGER, Role.ADMIN)
   async getTaskDistributionStatistics(
     @Param('task_id') task_id: string,
     @Request() req,
@@ -45,7 +45,7 @@ export class TaskDistributionMonitoringController {
   }
   @Get('statistics/:task_id/contributors')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.PROJECT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.PROJECT_MANAGER, Role.ADMIN)
   @ApiQuery({ name: 'page', required: false, default: 1 })
   @ApiQuery({ name: 'limit', required: false, default: 10 })
   getTaskAssignedContributors(
@@ -59,7 +59,7 @@ export class TaskDistributionMonitoringController {
   }
   @Get('statistics/:task_id/micro-task')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.PROJECT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.PROJECT_MANAGER, Role.ADMIN)
   @ApiProperty({
     description:
       'The api returns the distribution status of each microtask in the task ',
@@ -76,7 +76,7 @@ export class TaskDistributionMonitoringController {
 
   @Get('statistics/:task_id/data-set-assignment-for-reviewers')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.PROJECT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.PROJECT_MANAGER, Role.ADMIN)
   @ApiProperty({
     description:
       'The api returns the distribution status of each datasets  in the task  for reviewers',
@@ -92,7 +92,7 @@ export class TaskDistributionMonitoringController {
 
   @Get('statistics/:task_id/reviewers-task-progress')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.PROJECT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.PROJECT_MANAGER, Role.ADMIN)
   @ApiProperty({
     description: 'The api returns the reviewer task progress stats',
   })

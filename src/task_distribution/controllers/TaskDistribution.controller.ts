@@ -308,7 +308,7 @@ export class TaskDistributionController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.PROJECT_MANAGER, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @ApiOperation({ summary: 'Initialize task distribution' })
   @ApiResponse({ status: 201, description: 'Task distribution initialized' })
   @ApiQuery({ name: 'task_id', required: true })
@@ -346,7 +346,7 @@ export class TaskDistributionController {
 
   @Post('reviewer')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.PROJECT_MANAGER, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @ApiOperation({ summary: 'Initialize task distribution for reviewers ' })
   @ApiResponse({ status: 201, description: 'Task distributed successfully' })
   @ApiQuery({ name: 'task_id', required: true })
@@ -362,7 +362,7 @@ export class TaskDistributionController {
 
   @Post('/re-distribution')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Initialize task distribution' })
   @ApiResponse({ status: 201, description: 'Task distribution initialized' })
   async initializeTaskReDistribution() {

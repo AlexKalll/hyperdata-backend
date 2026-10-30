@@ -87,7 +87,7 @@ export class UsersController {
   }
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   async create(@Body() body: CreateUserDto) {
     const queryRunner: QueryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -163,7 +163,7 @@ export class UsersController {
   @Get('all')
   @ApiResponse({ status: 200, type: [UserSanitize] })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   async findAll(@Query() query: any) {
     const user = await this.usersService.findMany({ where: query });
     return user.map((user) => UserSanitize.from(user));
@@ -171,7 +171,7 @@ export class UsersController {
 
   @Get('/project-manager')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @ApiExtraModels(PaginatedResult, UserSanitize)
   @ApiResponse({
     status: 200,
@@ -215,7 +215,7 @@ export class UsersController {
   }
   @Get('/reviewer')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @ApiExtraModels(PaginatedResult, UserSanitize)
   @ApiResponse({
     status: 200,
@@ -262,7 +262,7 @@ export class UsersController {
   }
   @Get('/contributor')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER, Role.REVIEWER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER, Role.REVIEWER)
   @ApiExtraModels(PaginatedResult, UserSanitize)
   @ApiResponse({
     status: 200,
@@ -341,7 +341,7 @@ export class UsersController {
   }
   @Get('/facilitator')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER, Role.REVIEWER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER, Role.REVIEWER)
   @ApiExtraModels(PaginatedResult, UserSanitize)
   @ApiResponse({
     status: 200,
@@ -387,7 +387,7 @@ export class UsersController {
   }
   @Get('/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   findOne(@Param('id') id: string) {
     return this.usersService.findOne({
       where: { id },
@@ -396,7 +396,7 @@ export class UsersController {
   }
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @ApiExtraModels(PaginatedResult, UserSanitize)
   @ApiResponse({
     status: 200,
@@ -553,7 +553,7 @@ export class UsersController {
   }
   @Put('activate-toggle/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   async activatToggle(
     @Param('id', ParseUUIDPipe) id: string,
     @Request() request,
@@ -563,7 +563,7 @@ export class UsersController {
 
   @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   async update(
     @Param('id') id: string,
