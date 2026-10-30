@@ -35,7 +35,7 @@ export class BlogController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @UsePipes(new ZodValidationPipe(CreateBlogDto))
   async create(@Body() createBlogDto: CreateBlogDto) {
     return await this.blogService.create(createBlogDto);
@@ -54,14 +54,14 @@ export class BlogController {
   @ApiOperation({ summary: 'Update a Country by id' })
   @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   async update(@Param('id') id: string, @Body() updateBlogDto: UpdateBlogDto) {
     return await this.blogService.update(id, updateBlogDto);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   async remove(@Param('id') id: string) {
     return await this.blogService.remove(id);
   }

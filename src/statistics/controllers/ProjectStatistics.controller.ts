@@ -22,7 +22,7 @@ import {
 @ApiBearerAuth()
 @Controller('statistics/project')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PROJECT_MANAGER)
+@Roles(Role.ADMIN, Role.PROJECT_MANAGER)
 export class ProjectStatisticsController {
   constructor(
     private readonly projectStatisticsService: ProjectStatisticsService,

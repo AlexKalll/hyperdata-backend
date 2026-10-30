@@ -31,7 +31,7 @@ async function bootstrapAdmin(): Promise<void> {
     const userRepository = dataSource.getRepository(User);
     await roleRepository.upsert(
       [
-        { name: 'SuperAdmin', description: 'Super Admin' },
+        { name: 'Admin', description: 'Admin' },
         { name: 'Contributor', description: 'Contributor' },
         { name: 'Facilitator', description: 'Facilitator' },
         { name: 'Reviewer', description: 'Reviewer' },
@@ -41,12 +41,12 @@ async function bootstrapAdmin(): Promise<void> {
     );
 
     const role = await roleRepository.findOne({
-      where: { name: 'SuperAdmin' },
+      where: { name: 'Admin' },
     });
 
     if (!role) {
       throw new Error(
-        'SuperAdmin role does not exist. Start the API once so roles can be initialized, or run the approved role seed first.',
+        'Admin role does not exist. Start the API once so roles can be initialized, or run the approved role seed first.',
       );
     }
 
@@ -61,7 +61,7 @@ async function bootstrapAdmin(): Promise<void> {
         role_id: role.id,
         is_active: true,
       });
-      console.log(`Updated the SuperAdmin account for ${email}`);
+      console.log(`Updated the Admin account for ${email}`);
       return;
     }
 
@@ -75,7 +75,7 @@ async function bootstrapAdmin(): Promise<void> {
         is_active: true,
       }),
     );
-    console.log(`Created the SuperAdmin account for ${email}`);
+    console.log(`Created the Admin account for ${email}`);
   } finally {
     await dataSource.destroy();
   }

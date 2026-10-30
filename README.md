@@ -152,7 +152,7 @@ The system is designed around projects, tasks, micro-tasks, contributors, review
 - `CommunicationModule` - blog and contact-us features.
 - `CommonModule` - files, audio helpers, notifications, activity logs, RabbitMQ publishing, pagination, interceptors, and filters.
 - `BaseDataModule` - countries, regions, zones, languages, dialects, organizations, sectors, annotation types, flag types, and rejection types.
-- `StatisticsModule` - super-admin, project, and reviewer reports.
+- `StatisticsModule` - admin, project, and reviewer reports.
 - `CacheModule` - Redis-backed cache utilities and cache clearing.
 - `BackgroundTaskModule` - background consumers and file upload processing.
 - `HealthModule` - service health checks.

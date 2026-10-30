@@ -191,7 +191,7 @@ describe('UserService', () => {
   });
 
   describe('findMany', () => {
-    it('should omit the super admin from repository queries', async () => {
+    it('should preserve user filters without excluding administrators', async () => {
       userRepository.find.mockResolvedValue([]);
       const query = { where: { is_active: true } } as any;
 
@@ -199,10 +199,7 @@ describe('UserService', () => {
 
       const where = userRepository.find.mock.calls[0][0].where;
       expect(where.is_active).toBe(true);
-      expect(where.first_name).toMatchObject({
-        _type: 'not',
-        _value: 'SuperAdmin',
-      });
+      expect(where).toEqual({ is_active: true });
     });
 
     it('should use the query runner manager when provided', async () => {

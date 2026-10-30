@@ -11,6 +11,12 @@ Section 4(b) of the Apache License, Version 2.0.
 The upstream `LICENSE` file is retained unmodified in the repository root.
 Any copyright headers present in upstream source files are preserved.
 
+## 2026-10-29: Admin role consolidation
+
+- Standardized authorization, role initialization, seeds, bootstrap tooling, and statistics routes on the single `Admin` role.
+- Added a migration that renames the existing administrator role in place and consolidates duplicate role assignments, permission links, and notification references.
+- Included administrators in role selection and user-management queries so existing and newly created administrator accounts can be managed.
+
 ## Modifications
 
 All changes made in this fork relative to the upstream `mahder-backend` are

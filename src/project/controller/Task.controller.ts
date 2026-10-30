@@ -82,7 +82,7 @@ export class TaskController {
   ) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async create(@Body() taskData: CreateTaskDto, @Request() req) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -133,7 +133,7 @@ export class TaskController {
     }
   }
   @Post('/:id/add-instruction')
-  @Roles(Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @UseInterceptors(FileInterceptor('image', { storage: multerImageS3Storage }))
   async addTaskInstruction(
     @UploadedFile() file: any,
@@ -152,7 +152,7 @@ export class TaskController {
     });
   }
   @Post('/:id/assign-facilitator')
-  @Roles(Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async assignFacilitator(
     @Param('id') id: string,
     @Body()
@@ -186,7 +186,7 @@ export class TaskController {
     }
   }
   @Post('/:id/assign-reviewer')
-  @Roles(Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async assignOrInviteReviewer(
     @Param('id') id: string,
     @Body()
@@ -221,7 +221,7 @@ export class TaskController {
     }
   }
   @Post('/:id/assign-contributor')
-  @Roles(Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async assignContributor(
     @Param('id') id: string,
     @Body()
@@ -252,7 +252,7 @@ export class TaskController {
     }
   }
   @Post('/:id/assign-contributor-to-facilitator')
-  @Roles(Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async assingContributorToFacilitator(
     @Param('id') id: string,
     @Body()
@@ -324,7 +324,7 @@ export class TaskController {
   }
   @Get('/:id/get-contributors-by-task-requirement')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async getContributorByTaskRequirementPaginate(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Query() searchSchema: GetTaskMembersFilterDto,
@@ -374,7 +374,7 @@ export class TaskController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @UsePipes(new ZodValidationPipe())
   async findPaginate(@Query() searchSchema: GetTaskDto, @Request() req) {
     const user_id = req.user.id;
@@ -408,7 +408,7 @@ export class TaskController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @UsePipes(new ZodValidationPipe())
   async findArchivedPaginate(
     @Query() searchSchema: GetTaskDto,
@@ -465,7 +465,7 @@ export class TaskController {
 
   @Get('related-task-type/:task_id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SUPER_ADMIN, Role.PROJECT_MANAGER, Role.ADMIN)
+  @Roles(Role.PROJECT_MANAGER, Role.ADMIN)
   @UsePipes(new ZodValidationPipe())
   async findCompatibleTaskForImportMicroTask(
     @Param('task_id') task_id: string,
@@ -475,7 +475,7 @@ export class TaskController {
 
   @Get('all')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   async findAll(@Query() queryOption: UpdateTaskDto, @Request() req) {
     return this.taskService.findAll({
       where: { ...queryOption },
@@ -484,7 +484,7 @@ export class TaskController {
   }
   @Get('project/:id/all')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async findAllProjectTasks(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Request() req,
@@ -497,7 +497,7 @@ export class TaskController {
   @Get('project/:id')
   @ApiOperation({ summary: 'Find project tasks' })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @UsePipes(new ValidationPipe({ whitelist: true }))
   async findProjectTasks(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -538,7 +538,7 @@ export class TaskController {
   @Get('project/archived/:id')
   @ApiOperation({ summary: 'Find  archived project  tasks' })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @UsePipes(new ValidationPipe({ whitelist: true }))
@@ -578,7 +578,7 @@ export class TaskController {
 
   @Get(':id/members')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async findTaskMembers(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Query()
@@ -638,7 +638,7 @@ export class TaskController {
   }
   @Get(':id/members/all')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async findAllTaskMembers(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Query() queryOption: FindTaskMembersDto,
@@ -654,7 +654,7 @@ export class TaskController {
   }
   @Put(':id/members/activate-toggle')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @ApiBody({
     description: 'User ID to activate or deactivate the task',
     type: ActivateToggleDto,
@@ -668,7 +668,7 @@ export class TaskController {
   }
   @Delete(':id/members/remove')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @ApiBody({
     schema: {
       type: 'object',
@@ -679,7 +679,7 @@ export class TaskController {
   })
   @Delete(':id/facilitator-contributor/remove')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @ApiBody({
     schema: {
       type: 'object',
@@ -697,7 +697,7 @@ export class TaskController {
   }
   @Post(':id/members/flag-member')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @ApiBody({
     schema: {
       type: 'object',
@@ -716,14 +716,14 @@ export class TaskController {
 
   @Patch('archive-toggle/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async archiveToggle(@Param('id') id: string, @Request() req) {
     return this.taskService.archiveToggle(id);
   }
 
   @Post(':id/import-contributor-from-other-task')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @UsePipes(new ValidationPipe({ whitelist: true }))
   async importContributorFromOtherTask(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -737,7 +737,7 @@ export class TaskController {
   }
   @Post(':id/export-contributor')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @UsePipes(new ValidationPipe({ whitelist: true }))
   async exportContributorFromOtherTask(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -749,7 +749,7 @@ export class TaskController {
 
   @Put(':id/payment')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @UsePipes(new ValidationPipe({ whitelist: true }))
   async updatePayment(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -761,7 +761,7 @@ export class TaskController {
 
   @Put(':id/instruction')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @UsePipes(new ValidationPipe({ whitelist: true }))
   async updateTaskInstruction(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -773,7 +773,7 @@ export class TaskController {
 
   @Delete(':id/instruction')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async deleteTaskInstruction(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Request() req,
@@ -783,7 +783,7 @@ export class TaskController {
 
   @Put(':id/requirement')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @UsePipes(new ValidationPipe({ whitelist: true }))
   async updateRequiremnt(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -795,7 +795,7 @@ export class TaskController {
 
   @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   @UsePipes(new ValidationPipe({ whitelist: true }))
   async update(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -840,7 +840,7 @@ export class TaskController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @UsePipes(new ZodValidationPipe())
   async remove(@Param('id', new ParseUUIDPipe()) id: string, @Request() req) {
     const deletee = await this.taskService.remove(id);
@@ -858,7 +858,7 @@ export class TaskController {
 
   @Get(':id/unassigned-users')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async findTaskUnassignedUsers(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Query()
@@ -909,7 +909,7 @@ export class TaskController {
   }
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER, Role.FACILITATOR)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER, Role.FACILITATOR)
   async findOne(@Param('id', new ParseUUIDPipe()) id: string, @Request() req) {
     const task = await this.taskService.findOne({
       where: { id },

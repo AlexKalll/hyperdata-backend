@@ -3,6 +3,5 @@ export const RoleConstant = {
   REVIEWER: 'Reviewer',
   PROJECT_MANAGER: 'ProjectManager',
   FACILITATOR: 'Facilitator',
-  SUPERADMIN: 'SuperAdmin',
   ADMIN: 'Admin',
 };

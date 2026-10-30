@@ -11,8 +11,8 @@ export default class Role1744707155039 implements Seeder {
     await repository.upsert(
       [
         {
-          name: 'SuperAdmin',
-          description: 'Super Admin',
+          name: 'Admin',
+          description: 'Admin',
         },
         {
           name: 'Contributor',

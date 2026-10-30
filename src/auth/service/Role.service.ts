@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, Not, QueryRunner, Repository } from 'typeorm';
+import { FindOptionsWhere, QueryRunner, Repository } from 'typeorm';
 import { Role } from '../entities/Role.entity';
 @Injectable()
 export class RoleService {
@@ -33,18 +33,17 @@ export class RoleService {
    * @param query The query to filter roles. Supports relations.
    * @param queryRunner The query runner to use for the query.
    * @returns A promise resolving to an array of roles matching the query.
-   * @note The query is filtered to exclude the 'SuperAdmin' role.
    */
   async findMany(query: any, queryRunner?: QueryRunner): Promise<Role[]> {
     if (queryRunner) {
       const manager = queryRunner.manager;
       return await manager.find(Role, {
-        where: { ...query, name: Not('SuperAdmin') },
+        where: query,
       });
     } else {
       const manager = this.roleRepository;
       return await manager.find({
-        where: { ...query, name: Not('SuperAdmin') },
+        where: query,
       });
     }
   }

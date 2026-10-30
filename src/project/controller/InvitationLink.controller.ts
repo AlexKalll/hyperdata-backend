@@ -44,7 +44,7 @@ export class InivitationController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @UseGuards(JwtAuthGuard, RolesGuard, ProjectScopeGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async findProjectInvitationLinks(
     @Param('project_id') project_id: string,
     @Query() paginateDto: PaginationDto,
@@ -70,7 +70,7 @@ export class InivitationController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @UseGuards(JwtAuthGuard, RolesGuard, ProjectScopeGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async findTaskInvitationLinks(
     @Param('task_id') task_id: string,
     @Query() paginateDto: PaginationDto,
@@ -87,7 +87,7 @@ export class InivitationController {
   }
   @Post('/project/:project_id')
   @UseGuards(JwtAuthGuard, RolesGuard, ProjectScopeGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async createProjectInvitationLink(
     @Param('project_id') project_id: string,
     @Body(new ZodValidationPipe(createInvitationLinkDto))
@@ -100,7 +100,7 @@ export class InivitationController {
   }
   @Post('/task/:task_id')
   @UseGuards(JwtAuthGuard, RolesGuard, ProjectScopeGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.PROJECT_MANAGER)
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
   async invite(
     @Param('task_id') task_id: string,
     @Body(new ZodValidationPipe(createInvitationLinkDto))

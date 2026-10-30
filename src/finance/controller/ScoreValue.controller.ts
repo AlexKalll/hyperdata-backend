@@ -11,7 +11,7 @@ import { ScoreValueDto } from '../dto/wallet.dto';
 @ApiBearerAuth()
 @Controller('score-value')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.SUPER_ADMIN, Role.ADMIN)
+@Roles(Role.ADMIN)
 export class ScoreValueController {
   constructor(
     // Inject necessary services here
