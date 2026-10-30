@@ -144,13 +144,53 @@ export class FileService {
     const response = await this.s3.send(command);
     const buffer = await this.streamToBuffer(response.Body as Readable);
 
-    // Parse buffer using xlsx
-    const workbook = XLSX.read(buffer, { type: 'buffer' });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    const data = XLSX.utils.sheet_to_json(sheet); // Convert to array of objects
-
-    return data;
+    const isText = objectKey.toLowerCase().endsWith('.txt');
+    type ImportCell = string | number | boolean | null | undefined;
+    let data: ImportCell[][];
+    if (isText) {
+      data = buffer
+        .toString('utf8')
+        .replace(/^\uFEFF/, '')
+        .split(/\r\n|\n|\r/)
+        .map((line) => [line]);
+    } else {
+      const workbook = XLSX.read(buffer, {
+        type: 'buffer',
+        codepage: 65001,
+        raw: true,
+      });
+      data = XLSX.utils.sheet_to_json<ImportCell[]>(
+        workbook.Sheets[workbook.SheetNames[0]],
+        {
+          header: 1,
+          defval: '',
+          blankrows: false,
+        },
+      );
+    }
+    data = data.filter((row) =>
+      row.some((value) => String(value ?? '').trim()),
+    );
+    const headers = (data[0] || []).map((value) =>
+      String(value ?? '')
+        .trim()
+        .toLowerCase(),
+    );
+    const hasHeaders = !isText && headers.includes('text');
+    return (hasHeaders ? data.slice(1) : data)
+      .map((row, index) => {
+        const numbered =
+          row.length > 1 && /^\d+$/.test(String(row[0] ?? '').trim());
+        const item: Record<string, ImportCell> = hasHeaders
+          ? Object.fromEntries(
+              headers.map((header, column) => [header, row[column]]),
+            )
+          : { no: numbered ? row[0] : index + 1, text: row[numbered ? 1 : 0] };
+        if (item.no == null || !String(item.no).trim()) item.no = index + 1;
+        item.text = String(item.text ?? '');
+        return item;
+      })
+      .filter((row) => String(row.text).trim());
   }
   async uploadAudioFiles(
     objectName: string,

@@ -431,6 +431,12 @@ record.
 - Apply the health-check correction to the deployed backend and verify database
   and storage health through the live health endpoint.
 
+## 2026-10-26 - Flexible microtask imports
+
+- Accept case-insensitive CSV/XLSX headers, headerless text or numbered rows, and
+  TXT files with one microtask per non-empty line, generating row numbers as needed.
+- Preserve UTF-8 text when reading CSV files and skip blank rows during imports.
+
 ## 2026-10-18 - Optional invitation expiry
 
 - Accept omitted or null invitation expiry dates and store them as no expiration,
