@@ -118,8 +118,8 @@ export class TaskTypeService {
 
   async initTaskType(): Promise<void> {
     await Promise.all(
-      ['audio-text', 'text-audio', 'text-text'].map(
-        async (task_type: 'audio-text' | 'text-audio' | 'text-text') => {
+      (['audio-text', 'text-audio', 'text-text', 'image-text'] as const).map(
+        async (task_type) => {
           await this.taskTypeRepository.upsert(
             { task_type: task_type },
             { conflictPaths: ['task_type'] },

@@ -154,7 +154,11 @@ export class MicroTaskService {
         can_retry: can_retry,
       });
     }
-    if (task.taskType.task_type === taskTypes.AUDIO_TO_TEXT) {
+    if (
+      [taskTypes.AUDIO_TO_TEXT, taskTypes.IMAGE_TO_TEXT].includes(
+        task.taskType.task_type,
+      )
+    ) {
       for (const microTask of micro_task_data_sets) {
         microTask.file_path = await this.fileService.getPreSignedUrl(
           microTask.file_path,
@@ -272,6 +276,35 @@ export class MicroTaskService {
       const microTask = manager.create(microTaskData);
       return await manager.save(microTask);
     }
+  }
+
+  async createImageMicroTask(
+    data: Partial<MicroTask>,
+    queryRunner: QueryRunner,
+  ): Promise<MicroTask> {
+    const task = await queryRunner.manager.findOne(Task, {
+      where: { id: data.task_id },
+      relations: { taskType: true },
+    });
+    if (!task) throw new NotFoundException('Task not found');
+    if (task.taskType.task_type !== taskTypes.IMAGE_TO_TEXT) {
+      throw new BadRequestException('Images require an image-to-text task');
+    }
+    if (task.is_archived || task.is_closed)
+      throw new BadRequestException('Task is closed or archived');
+    if (data.is_test && !task.require_contributor_test) {
+      throw new BadRequestException(
+        'Contributor test is not required for this task',
+      );
+    }
+    return queryRunner.manager.save(
+      MicroTask,
+      queryRunner.manager.create(MicroTask, {
+        ...data,
+        type: 'image',
+        code: await this.generateCode(),
+      }),
+    );
   }
 
   /**
@@ -425,7 +458,9 @@ export class MicroTaskService {
       }
       // Add dialect to the query option
       if (
-        [taskTypes.AUDIO_TO_TEXT].indexOf(task.taskType?.task_type || '') !== -1
+        [taskTypes.AUDIO_TO_TEXT, taskTypes.IMAGE_TO_TEXT].includes(
+          task.taskType?.task_type || '',
+        )
       ) {
         microTaskTypeIsFile = true;
       }
@@ -469,7 +504,7 @@ export class MicroTaskService {
 
     const manager = this.microTaskRepository;
     const micro_task = await manager.findOne(options);
-    if (micro_task && micro_task.type == 'audio') {
+    if (micro_task && ['audio', 'image'].includes(micro_task.type)) {
       micro_task.file_path = await this.fileService.getPreSignedUrl(
         micro_task.file_path,
       );

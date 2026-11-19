@@ -234,7 +234,11 @@ export class TaskDistributionController {
     const user_id = req.user.id;
     const task: TaskMicroTasksResponse =
       await this.getTaskService.getContributorTaskMicroTasks(user_id, task_id);
-    if (task.task_type == taskTypes.AUDIO_TO_TEXT) {
+    if (
+      [taskTypes.AUDIO_TO_TEXT, taskTypes.IMAGE_TO_TEXT].includes(
+        task.task_type,
+      )
+    ) {
       for (const mt of task.contributorMicroTask) {
         mt.file_path = await this.fileService.getPreSignedUrl(mt.file_path);
       }

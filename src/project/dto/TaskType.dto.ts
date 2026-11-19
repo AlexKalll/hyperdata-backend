@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 export const createTaskTypeSchema = z
   .object({
-    task_type: z.enum(['audio-text', 'text-audio', 'text-text']),
+    task_type: z.enum(['audio-text', 'text-audio', 'text-text', 'image-text']),
   })
   .required();
 

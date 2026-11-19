@@ -13,6 +13,8 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  ConflictException,
+  Logger,
   Res,
   ParseUUIDPipe,
   UploadedFiles,
@@ -56,6 +58,9 @@ import XLSX from 'xlsx';
 import { Response } from 'express';
 import { MicroTaskRto } from '../rto/MicroTask.rto';
 import { ProjectScopeGuard } from 'src/project/guard/ProjectScope.guard';
+import { memoryStorage } from 'multer';
+import { createHash, randomUUID } from 'crypto';
+import { isUUID } from 'class-validator';
 @Controller('workspace/micro-task')
 @ApiTags('MicroTask')
 @UseGuards(JwtAuthGuard, RolesGuard, ProjectScopeGuard)
@@ -280,6 +285,143 @@ export class MicroTaskController {
       task_id,
       paginateDto,
     );
+  }
+
+  @Post('/:task_id/image')
+  @Roles(Role.ADMIN, Role.PROJECT_MANAGER)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        upload_id: {
+          type: 'string',
+          format: 'uuid',
+          description: 'Reuse this UUID v4 when retrying the same image upload',
+        },
+        instruction: { type: 'string' },
+        is_test: { type: 'boolean' },
+      },
+    },
+  })
+  async createImageMicroTask(
+    @UploadedFile() file: Express.Multer.File,
+    @Param('task_id', ParseUUIDPipe) taskId: string,
+    @Request() req,
+  ) {
+    if (!file?.size) throw new BadRequestException('Image required');
+    if (
+      req.body.is_test !== undefined &&
+      !['true', 'false', true, false].includes(req.body.is_test)
+    ) {
+      throw new BadRequestException('is_test must be true or false');
+    }
+    if (
+      req.body.instruction !== undefined &&
+      typeof req.body.instruction !== 'string'
+    ) {
+      throw new BadRequestException('instruction must be text');
+    }
+    if (req.body.upload_id !== undefined && !isUUID(req.body.upload_id, '4')) {
+      throw new BadRequestException('upload_id must be a UUID v4');
+    }
+    // Older API clients may omit the ID; dashboard retries always reuse one.
+    const uploadId = (req.body.upload_id || randomUUID()).toLowerCase();
+    const instruction = req.body.instruction || null;
+    const isTest = req.body.is_test === 'true' || req.body.is_test === true;
+    const fingerprint = createHash('sha256')
+      .update(JSON.stringify([instruction, isTest]))
+      .update('\0')
+      .update(file.buffer)
+      .digest('hex');
+    const key = `images/micro-tasks/${randomUUID()}`;
+    const runner = this.dataSource.createQueryRunner();
+    let uploaded = false;
+    await runner.connect();
+    try {
+      await runner.startTransaction('READ COMMITTED');
+      // A transaction-scoped lock serializes only retries of this upload,
+      // including requests handled by different API instances.
+      const lockId = createHash('sha256')
+        .update(
+          `image-upload:${taskId.toLowerCase()}:${req.user.id}:${uploadId}`,
+        )
+        .digest()
+        .readBigInt64BE()
+        .toString();
+      await runner.query('SELECT pg_advisory_xact_lock($1::bigint)', [lockId]);
+      const existing = await runner.manager.findOne(MicroTask, {
+        where: {
+          task_id: taskId,
+          created_by: req.user.id,
+          image_upload_id: uploadId,
+        },
+        withDeleted: true,
+      });
+      if (existing) {
+        if (existing.image_upload_fingerprint !== fingerprint) {
+          throw new ConflictException(
+            'This upload_id was already used with a different image or settings',
+          );
+        }
+        if (existing.deletedAt) {
+          throw new ConflictException('This image upload was already deleted');
+        }
+        await runner.commitTransaction();
+        return existing;
+      }
+      const microTask = await this.microTaskService.createImageMicroTask(
+        {
+          task_id: taskId,
+          file_path: key,
+          created_by: req.user.id,
+          instruction,
+          is_test: isTest,
+          image_upload_id: uploadId,
+          image_upload_fingerprint: fingerprint,
+        },
+        runner,
+      );
+      await this.fileService.uploadMicroTaskImage(key, file.buffer);
+      uploaded = true;
+      await this.activityLogService.create(
+        {
+          user_id: req.user.id,
+          action: ActivityLogActions.CREATE_MICRO_TASK,
+          metadata: 'image',
+          ip: req.ip,
+          user_agent: req.headers['user-agent'],
+          entity_type: ActivityEntityType.MICRO_TASK,
+          entity_id: microTask.id,
+        },
+        runner,
+      );
+      await runner.commitTransaction();
+      return microTask;
+    } catch (error) {
+      if (runner.isTransactionActive) await runner.rollbackTransaction();
+      if (uploaded) {
+        try {
+          await this.fileService.deleteFile(key);
+        } catch {
+          Logger.error(
+            `Failed to clean up image ${key}`,
+            'MicroTaskController',
+          );
+        }
+      }
+      throw error;
+    } finally {
+      await runner.release();
+    }
   }
 
   @Post('/:task_id/audio')

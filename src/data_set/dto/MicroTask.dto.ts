@@ -24,7 +24,7 @@ export class GetMicroTasksDto extends PaginationDto {
 
   @ApiPropertyOptional({ description: 'Filter by type' })
   @IsOptional()
-  @IsIn(['text', 'audio'])
+  @IsIn(['text', 'audio', 'image'])
   type?: string;
 
   @ApiPropertyOptional({ description: 'Filter by whether it is a test task' })

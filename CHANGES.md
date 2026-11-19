@@ -11,6 +11,19 @@ Section 4(b) of the Apache License, Version 2.0.
 The upstream `LICENSE` file is retained unmodified in the repository root.
 Any copyright headers present in upstream source files are preserved.
 
+## 2026-11-19: Duplicate-safe image uploads
+
+- Added persisted upload identifiers scoped to the task and uploader, with a unique index and transaction-scoped locking to prevent duplicates during concurrent retries.
+- Return the existing microtask for matching retries without uploading another object or repeating its activity log; reject identifier reuse with changed content or settings.
+- Added an incremental migration with nullable fields, preserving existing microtasks and datasets.
+
+## 2026-11-12: Image-to-text collection
+
+- Added the `image-text` task type with a transactional migration preserving existing task-type IDs and tasks.
+- Added scoped image-prompt uploads with 10 MB limits, decoded JPEG/PNG/WebP validation, private object storage, transactional activity logs, and failure cleanup.
+- Reused text contribution, reviewer assignment, retry, and payment processing for image prompts; enforced task character limits and task-language labeling.
+- Added signed source-image URLs to contributor, manager, reviewer, and history responses, with idempotent URL signing.
+
 ## 2026-10-29: Admin role consolidation
 
 - Standardized authorization, role initialization, seeds, bootstrap tooling, and statistics routes on the single `Admin` role.

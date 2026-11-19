@@ -72,12 +72,16 @@ export class TaskSubmissionService {
     if (!task || task.is_archived || task.is_closed) {
       throw new BadRequestException('Task Not Found');
     }
-    const dialect_id = user?.dialect_id;
-    const language_id = user?.language_id;
+    const isImageText = task.taskType.task_type === taskTypes.IMAGE_TO_TEXT;
+    const language_id = isImageText ? task.language_id : user?.language_id;
+    const dialect_id =
+      isImageText && user?.language_id !== task.language_id
+        ? undefined
+        : user?.dialect_id;
     if (!datasets || datasets.length == 0) {
       throw new BadRequestException('No datasets provided');
     }
-    if (!dialect_id || !language_id) {
+    if (!language_id || (!isImageText && !dialect_id)) {
       throw new BadRequestException('User Dialect or Language not found');
     }
     // filter the micro task ids
@@ -102,10 +106,33 @@ export class TaskSubmissionService {
     });
     const task_type = task.taskType.task_type || '';
     if (
-      [taskTypes.AUDIO_TO_TEXT, taskTypes.TEXT_TO_TEXT].indexOf(task_type) ===
-      -1
+      [
+        taskTypes.AUDIO_TO_TEXT,
+        taskTypes.TEXT_TO_TEXT,
+        taskTypes.IMAGE_TO_TEXT,
+      ].indexOf(task_type) === -1
     ) {
       throw new BadRequestException(`Invalid Dataset Type for this task`); // or throw a custom error
+    }
+    if (isImageText) {
+      datasets = datasets.map((item) => ({
+        ...item,
+        text_data_set: item.text_data_set.trim(),
+      }));
+      const { minimum_characters_length: min, maximum_characters_length: max } =
+        task.taskRequirement;
+      for (const item of datasets) {
+        const length = item.text_data_set.length;
+        if (
+          !length ||
+          (min != null && length < min) ||
+          (max != null && length > max)
+        ) {
+          throw new BadRequestException(
+            'Text must be non-empty and satisfy the task character limits',
+          );
+        }
+      }
     }
     const microTaskMap = new Map<string, MicroTask>(
       microTasks.map((mt) => [mt.id, mt]),
@@ -137,7 +164,7 @@ export class TaskSubmissionService {
         const test_data_set: {
           micro_task_id: string;
           text_data_set: string;
-          dialect_id: string;
+          dialect_id?: string;
           language_id: string;
           is_test: boolean;
         }[] = [];
@@ -200,7 +227,7 @@ export class TaskSubmissionService {
       const data_set_given: {
         micro_task_id: string;
         text_data_set: string;
-        dialect_id: string;
+        dialect_id?: string;
         language_id: string;
         is_test: boolean;
       }[] = filtered_datasets.map((d) => ({

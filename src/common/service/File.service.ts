@@ -5,13 +5,14 @@ import {
   PutObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { s3, s3Presigner } from 'src/config/minio.config';
 import { DataSet } from 'src/data_set/entities/DataSet.entity';
 import { MicroTask } from 'src/data_set/entities/MicroTask.entity';
 import { Readable } from 'stream';
 import * as XLSX from 'xlsx';
+import sharp from 'sharp';
 @Injectable()
 export class FileService {
   // define constructor with s3
@@ -41,6 +42,7 @@ export class FileService {
     objectKey: string,
     expiresInSeconds = 3600 * 24,
   ): Promise<string> {
+    if (!objectKey || /^https?:\/\//i.test(objectKey)) return objectKey;
     try {
       // const objectExists = await this.objectExists(this.bucketName, objectKey);
       // if (!objectExists) {
@@ -204,5 +206,48 @@ export class FileService {
       ContentType: contentType,
     });
     return await this.s3.send(command);
+  }
+
+  async uploadMicroTaskImage(objectKey: string, buffer: Buffer): Promise<void> {
+    let contentType: string;
+    try {
+      const image = sharp(buffer, {
+        limitInputPixels: 40_000_000,
+        failOn: 'warning',
+      });
+      const metadata = await image.metadata();
+      const formats: Record<string, string> = {
+        jpeg: 'image/jpeg',
+        png: 'image/png',
+        webp: 'image/webp',
+      };
+      contentType = formats[metadata.format || ''];
+      if (!contentType || (metadata.pages || 1) > 1)
+        throw new Error('Invalid image format');
+      // The PNG decoder exposes only the first APNG frame, so inspect its
+      // animation-control chunk rather than relying on metadata.pages alone.
+      if (metadata.format === 'png') {
+        for (let offset = 8; offset + 12 <= buffer.length;) {
+          const length = buffer.readUInt32BE(offset);
+          if (buffer.toString('ascii', offset + 4, offset + 8) === 'acTL')
+            throw new Error('Animated PNG is not supported');
+          offset += length + 12;
+        }
+      }
+      // metadata alone does not detect truncated/corrupt pixel data.
+      await image.stats();
+    } catch {
+      throw new BadRequestException(
+        'Upload a valid, non-animated JPEG, PNG, or WebP image (maximum 40 megapixels)',
+      );
+    }
+    await this.s3.send(
+      new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: objectKey,
+        Body: buffer,
+        ContentType: contentType,
+      }),
+    );
   }
 }

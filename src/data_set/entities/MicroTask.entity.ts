@@ -4,6 +4,7 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
@@ -13,6 +14,13 @@ import {
 import { DataSet } from './DataSet.entity';
 
 @Entity('micro_task')
+@Index(
+  'UQ_micro_task_image_upload',
+  ['task_id', 'created_by', 'image_upload_id'],
+  {
+    unique: true,
+  },
+)
 export class MicroTask {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -28,6 +36,12 @@ export class MicroTask {
 
   @Column({ nullable: true })
   file_path: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  image_upload_id: string | null;
+
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  image_upload_fingerprint: string | null;
 
   @Column({ type: 'text', nullable: true })
   text: string;

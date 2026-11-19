@@ -103,7 +103,7 @@ export class DataSetService {
     dataSets: {
       micro_task_id: string;
       text_data_set: string;
-      dialect_id: string;
+      dialect_id?: string;
       language_id: string;
       is_test: boolean;
     }[],
@@ -278,6 +278,9 @@ export class DataSetService {
         queryOption,
       );
     for (const d of datasets.result) {
+      if (d.microTask?.type === 'image' && d.microTask.file_path) {
+        await this.fileService.setPreSignedMicroTask(d.microTask);
+      }
       if (d.type == 'audio') {
         d.file_path = await this.fileService.getPreSignedUrl(d.file_path);
       }
@@ -316,6 +319,9 @@ export class DataSetService {
     }
     const manager = this.dataSetRepository;
     const dataSet: DataSet | null = await manager.findOne(options);
+    if (dataSet?.microTask?.type === 'image' && dataSet.microTask.file_path) {
+      await this.fileService.setPreSignedMicroTask(dataSet.microTask);
+    }
     if (dataSet && dataSet.type == 'audio') {
       dataSet.file_path = await this.fileService.getPreSignedUrl(
         dataSet.file_path,
@@ -786,7 +792,9 @@ export class DataSetService {
       }
     }
     if (
-      [taskTypes.AUDIO_TO_TEXT].indexOf(task?.taskType?.task_type || '') !== -1
+      [taskTypes.AUDIO_TO_TEXT, taskTypes.IMAGE_TO_TEXT].indexOf(
+        task?.taskType?.task_type || '',
+      ) !== -1
     ) {
       for (const dataset of result) {
         dataset.microTask.file_path = await this.fileService.getPreSignedUrl(
@@ -1092,7 +1100,9 @@ export class DataSetService {
     ) {
       signedDataSets = await this.fileService.getPreSignedDatasets(dataSets);
     } else if (
-      [taskTypes.AUDIO_TO_TEXT].indexOf(task?.taskType?.task_type || '') !== -1
+      [taskTypes.AUDIO_TO_TEXT, taskTypes.IMAGE_TO_TEXT].indexOf(
+        task?.taskType?.task_type || '',
+      ) !== -1
     ) {
       for (const dataset of dataSets) {
         await this.fileService.setPreSignedMicroTask(dataset.microTask);
@@ -1149,7 +1159,11 @@ export class DataSetService {
       for (const dataSet of dataSets) {
         await this.fileService.setPreSignedDatasets(dataSet);
       }
-    } else if ([taskTypes.AUDIO_TO_TEXT].includes(task.taskType.task_type)) {
+    } else if (
+      [taskTypes.AUDIO_TO_TEXT, taskTypes.IMAGE_TO_TEXT].includes(
+        task.taskType.task_type,
+      )
+    ) {
       for (const dataSet of dataSets) {
         await this.fileService.setPreSignedMicroTask(dataSet.microTask);
       }

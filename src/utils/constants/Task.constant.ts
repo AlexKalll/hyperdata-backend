@@ -2,6 +2,7 @@ export const taskTypes = {
   TEXT_TO_TEXT: 'text-text',
   TEXT_TO_AUDIO: 'text-audio',
   AUDIO_TO_TEXT: 'audio-text',
+  IMAGE_TO_TEXT: 'image-text',
 };
 
 export const DataSetType = {

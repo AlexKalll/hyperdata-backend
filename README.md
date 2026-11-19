@@ -52,6 +52,31 @@ The system is designed around projects, tasks, micro-tasks, contributors, review
 - Dataset action publishing through RabbitMQ.
 - File upload processing through background queues.
 
+### Image-to-text collection
+
+Create a task with type `image-text`, then upload one image per request to
+`POST /api/workspace/micro-task/:task_id/image` as multipart form data (`file`,
+optional `instruction`, optional `is_test`, optional UUID v4 `upload_id`). Admins
+and the project's manager can upload JPEG, PNG, or WebP files up to 10 MB and 40
+megapixels. Files are decoded before acceptance; animated and corrupt images are
+rejected.
+
+Clients should generate an `upload_id` per selected file and reuse it with the
+same image, instruction, and test setting on every retry. Matching retries return
+the existing microtask, including concurrent requests, without another storage
+upload or activity log. Reusing an ID with different content/settings returns
+409. IDs are scoped to the task and uploader and remain reserved after soft
+deletion. Omitting the ID is supported for older clients but does not provide
+duplicate-safe retries.
+
+Each image becomes an `image` microtask with a private object key. Contributors
+receive signed image URLs and submit answers through the existing
+`POST /api/task-distribution/:task_id/contribute` endpoint using
+`attempts: [{ micro_task_id, text_data_set }]`. Answers are `text` datasets,
+labeled with the task's language and subject to its character limits. Existing
+assignment, qualification, review, retry, and payment rules apply. Run migrations
+before starting the updated API.
+
 ### Task Distribution
 
 - Contributor task assignment and "my tasks" retrieval.

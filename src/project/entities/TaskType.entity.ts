@@ -20,10 +20,11 @@ export class TaskType {
       taskTypes.AUDIO_TO_TEXT,
       taskTypes.TEXT_TO_AUDIO,
       taskTypes.TEXT_TO_TEXT,
+      taskTypes.IMAGE_TO_TEXT,
     ],
     unique: true,
   })
-  task_type: 'audio-text' | 'text-audio' | 'text-text';
+  task_type: 'audio-text' | 'text-audio' | 'text-text' | 'image-text';
 
   @Column({ nullable: true })
   created_by: string;
